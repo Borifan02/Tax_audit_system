@@ -762,10 +762,15 @@ export default function AuditorDashboard({ view, onNavigate }) {
     if (caseIsComprehensive) {
       return (
         <ComprehensiveAuditWorkspace
-          caseData={activeStepCase}
-          user={user}
-          onClose={handleCloseWorkspace}
-          onRefresh={refresh}
+          caseId={activeStepCase.id || activeStepCase.caseId}
+          currentUser={user}
+          onCaseChange={() => {
+            setActiveStepCase(null);
+            setExecutingCaseOverride(null);
+            setSelectedCaseId(null);
+            sessionStorage.removeItem('auditor_active_case_id');
+            if (onNavigate) onNavigate('cases');
+          }}
         />
       );
     }

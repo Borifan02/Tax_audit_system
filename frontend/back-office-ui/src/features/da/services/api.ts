@@ -623,22 +623,37 @@ export const itasApi = {
     }
   ): Promise<{ success: boolean; status: AuditStatus; auditCase: AuditCase }> {
     try {
-      const res = await fetch(`/api/v1/backoffice/da/cases/${caseId}/workflow`, {
+      let realId = caseId;
+      if (caseId === 'DA-2026-001') realId = '18fef117-3579-4e7b-be25-5073ba76d30b';
+      if (caseId === 'COMP-2026-001' || caseId === 'CA-2026-101') realId = 'c0000000-0000-0000-0000-000000000101';
+      const res = await fetch(`/api/v1/backoffice/da/cases/${realId}/workflow`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       });
+      
       if (res.ok) {
         const json = await res.json();
-        // Backend returns { success, status, auditCase } — normalize the shape
+        const finalStatus = json.status || payload.action;
+        
+        // Update local storage to match backend
+        const current = getLocalCaseData(caseId);
+        current.auditCase.status = finalStatus;
+        if (payload.action === 'APPROVE_AUDIT' || payload.action === 'RETURN_FOR_CORRECTION') {
+          current.auditCase.teamLeaderComment = payload.comment || '';
+        }
+        saveLocalCaseData(caseId, current);
+
         return {
           success: json.success ?? true,
-          status: json.status || payload.action,
-          auditCase: json.auditCase || { status: json.status }
+          status: finalStatus,
+          auditCase: json.auditCase || { status: finalStatus }
         };
+      } else {
+        console.error("Workflow API failed with status:", res.status);
       }
-    } catch {
-      // Fallback to local state
+    } catch (err) {
+      console.error("Workflow API network error:", err);
     }
 
     const current = getLocalCaseData(caseId);

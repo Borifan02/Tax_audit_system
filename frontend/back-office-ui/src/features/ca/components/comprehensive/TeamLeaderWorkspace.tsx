@@ -47,11 +47,13 @@ import { AuditTrailDrawer } from '../workspace/AuditTrailDrawer';
 interface TeamLeaderWorkspaceProps {
   currentUser: AuthUser;
   onSelectCase?: (caseId: string) => void;
+  onClose?: () => void;
 }
 
 export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
   currentUser,
-  onSelectCase
+  onSelectCase,
+  onClose
 }) => {
   const [casesList, setCasesList] = useState<any[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('CA-2026-102');
@@ -174,7 +176,7 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
       const res = await itasApi.executeWorkflow(activeCase.id, {
         action: workflowAction,
         comment: actionComment,
-        user: currentUser.name
+        user: currentUser?.name || 'Supervisor'
       });
 
       if (res.success) {
@@ -205,6 +207,15 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
       <div className="bg-slate-900 text-white px-4 sm:px-6 py-3 border-b border-slate-800 shadow-md">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="mr-2 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                title="Back to Dashboard"
+              >
+                <ArrowRight className="w-5 h-5 text-slate-400 rotate-180" />
+              </button>
+            )}
             <div className="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
               <UserCheck className="w-5 h-5" />
             </div>
@@ -217,12 +228,12 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                   SOR FR-04.7
                 </span>
                 <span className="text-2xs px-2 py-0.5 rounded font-mono bg-slate-800 text-slate-300 border border-slate-700">
-                  {currentUser.directorate}
+                  {currentUser?.directorate || currentUser?.taxCenter || 'LTO-1'}
                 </span>
               </div>
               <p className="text-xs text-slate-400">
                 Reviewing Auditor: <strong className="text-slate-200">{activeCase?.assignedAuditor || 'Jane Doe'}</strong> • Supervisor:{' '}
-                <strong className="text-slate-200">{currentUser.name}</strong> ({currentUser.badgeNumber})
+                <strong className="text-slate-200">{currentUser?.name || 'Supervisor'}</strong> ({currentUser?.badgeNumber || 'TL-001'})
               </p>
             </div>
           </div>
