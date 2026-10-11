@@ -531,6 +531,9 @@ export default function TpAuditorWorkspace({
               {activeTab === 'FIELD_WORK' && (
                 <Phase3SubSteps
                   subStepId={activeSubStepId}
+                  onSelectSubStep={setActiveSubStepId}
+                  onProceedToPhase={setActiveTab}
+                  isReadOnly={isPhaseLockedForEditing}
                   fullState={fullState}
                   accountingNotes={accountingNotes}
                   setAccountingNotes={setAccountingNotes}
@@ -549,6 +552,9 @@ export default function TpAuditorWorkspace({
               {activeTab === 'ANALYSIS' && (
                 <Phase4SubSteps
                   subStepId={activeSubStepId}
+                  onSelectSubStep={setActiveSubStepId}
+                  onProceedToPhase={setActiveTab}
+                  isReadOnly={isPhaseLockedForEditing}
                   fullState={fullState}
                   selectedMethod={selectedMethod}
                   setSelectedMethod={setSelectedMethod}
@@ -574,6 +580,9 @@ export default function TpAuditorWorkspace({
               {activeTab === 'REPORT' && (
                 <Phase5SubSteps
                   subStepId={activeSubStepId}
+                  onSelectSubStep={setActiveSubStepId}
+                  onProceedToPhase={setActiveTab}
+                  isReadOnly={isPhaseLockedForEditing}
                   fullState={fullState}
                   executiveSummary={executiveSummary}
                   setExecutiveSummary={setExecutiveSummary}
@@ -593,6 +602,9 @@ export default function TpAuditorWorkspace({
               {activeTab === 'ASSESSMENT' && (
                 <Phase6SubSteps
                   subStepId={activeSubStepId}
+                  onSelectSubStep={setActiveSubStepId}
+                  onProceedToPhase={setActiveTab}
+                  isReadOnly={isPhaseLockedForEditing}
                   fullState={fullState}
                   varianceAmt={varianceAmt}
                   assessedTax={assessedTax}
@@ -611,6 +623,9 @@ export default function TpAuditorWorkspace({
               {activeTab === 'NOTICE' && (
                 <Phase7SubSteps
                   subStepId={activeSubStepId}
+                  onSelectSubStep={setActiveSubStepId}
+                  onProceedToPhase={setActiveTab}
+                  isReadOnly={isPhaseLockedForEditing}
                   fullState={fullState}
                   completedSubSteps={completedSubSteps}
                   onToggleComplete={handleToggleSubStep}
@@ -622,6 +637,9 @@ export default function TpAuditorWorkspace({
               {activeTab === 'CLOSURE' && (
                 <Phase8SubSteps
                   subStepId={activeSubStepId}
+                  onSelectSubStep={setActiveSubStepId}
+                  onProceedToPhase={setActiveTab}
+                  isReadOnly={isPhaseLockedForEditing}
                   fullState={fullState}
                   completedSubSteps={completedSubSteps}
                   onToggleComplete={handleToggleSubStep}
