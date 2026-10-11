@@ -70,15 +70,14 @@ sequenceDiagram
 
 ### Step 1: Startup Initialization & Multi-Source User Synchronization (`@PostConstruct`)
 When the Spring Boot application starts, [`BackofficeSecurityService.init()`](file:///home/paul/itas-audit-system/backend/bs-taxaudit-core-server/src/main/java/mor/itas/infrastructure/security/BackofficeSecurityService.java#L128-L163) runs automatically:
-1. It pre-computes the BCrypt cost-10 hash for the default initial password (`Mor@2026!`) and legacy seed password (`password123`).
+1. It pre-computes the BCrypt cost-10 hash for the default initial password (`Mor@2026!`).
 2. It merges users from all 4 sources (`MockUserManagementAdapter`, `MockUserRepository`, PostgreSQL `t_user` table via `UserJpaRepository`, and frontend seed aliases including `SYSTEM_ADMIN` and `QA_OFFICER`/`QA_TEAM_LEADER`/`QA_DIRECTOR`) without overwriting custom passwords already saved in PostgreSQL.
 
 ```java
-// File: BackofficeSecurityService.java (Lines 49-56 & 128-163)
+// File: BackofficeSecurityService.java
 private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
 public static final String DEFAULT_INITIAL_PASSWORD = "Mor@2026!";
-private static final String LEGACY_SEED_PASSWORD = "password123";
 public static final int MAX_FAILED_ATTEMPTS = 5;
 public static final int LOCKOUT_DURATION_MINUTES = 15;
 private static final long JWT_EXPIRY_SECONDS = 8 * 3600L; // 8 hours max token lifetime
@@ -86,7 +85,6 @@ private static final long JWT_EXPIRY_SECONDS = 8 * 3600L; // 8 hours max token l
 @PostConstruct
 public void init() {
     this.defaultPasswordHash = passwordEncoder.encode(DEFAULT_INITIAL_PASSWORD);
-    this.legacyPasswordHash = passwordEncoder.encode(LEGACY_SEED_PASSWORD);
     synchronizeAllExistingUsers();
     recordAuditEvent("SYSTEM_SECURITY_INIT", "INFO", "SYSTEM", "ALL_USERS", "SYSTEM_ADMIN", "FEDERAL", "127.0.0.1",
             "MOR Back-Office BCrypt Password Engine, 5-attempt Lockout Guard, and Signed JWT Service initialized (" + securityRecords.size() + " accounts protected).");
@@ -130,11 +128,11 @@ public ResponseEntity<Map<String, Object>> login(
 
 ---
 
-### Step 3: Multi-Alias User Resolution (`resolveSecurityRecord`)
-Users in MOR ITAS can log in using their **canonical username** (`u-tl-fed1a`), **email** (`abebe.bikila@mor.gov.et`), **short alias** (`abebe.bikila` or `admin`), or **legacy ID** (`usr-qa-01`). [`BackofficeSecurityService.resolveSecurityRecord()`](file:///home/paul/itas-audit-system/backend/bs-taxaudit-core-server/src/main/java/mor/itas/infrastructure/security/BackofficeSecurityService.java#L406-L441) resolves all of these to the single canonical `UserSecurityRecord`:
+### Step 3: Strict Multi-Alias User Resolution (`resolveSecurityRecord`)
+Users in MOR ITAS can log in using their **canonical username** (`u-tl-fed1a`), **email** (`abebe.bikila@mor.gov.et`), **short alias** (`abebe.bikila` or `admin`), or **legacy ID** (`usr-qa-01`). [`BackofficeSecurityService.resolveSecurityRecord()`](file:///home/paul/itas-audit-system/backend/bs-taxaudit-core-server/src/main/java/mor/itas/infrastructure/security/BackofficeSecurityService.java#L387-L420) resolves registered accounts strictly without synthesizing unknown usernames/emails:
 
 ```java
-// File: BackofficeSecurityService.java (Lines 406-441)
+// File: BackofficeSecurityService.java
 public UserSecurityRecord resolveSecurityRecord(String identifier) {
     if (identifier == null || identifier.isBlank()) return null;
     String clean = identifier.trim().toLowerCase();
@@ -145,19 +143,30 @@ public UserSecurityRecord resolveSecurityRecord(String identifier) {
     if (canonical != null && securityRecords.containsKey(canonical)) {
         return securityRecords.get(canonical);
     }
-    // Falls back to direct record scan or MOR pattern synthesis if needed...
+
+    for (UserSecurityRecord rec : securityRecords.values()) {
+        if (rec.getUsername().equalsIgnoreCase(clean)
+                || rec.getUsername().equalsIgnoreCase(base)
+                || (rec.getEmail() != null && rec.getEmail().equalsIgnoreCase(clean))
+                || (rec.getLegacyId() != null && rec.getLegacyId().equalsIgnoreCase(clean))) {
+            return rec;
+        }
+    }
+
+    // Strictly reject any unrecognized username or email
+    return null;
 }
 ```
 
 ---
 
 ### Step 4: Account Status & Brute-Force Lockout Checks (`authenticate`)
-Inside [`BackofficeSecurityService.authenticate()`](file:///home/paul/itas-audit-system/backend/bs-taxaudit-core-server/src/main/java/mor/itas/infrastructure/security/BackofficeSecurityService.java#L504-L560), before checking the password, the backend enforces two security gates:
+Inside [`BackofficeSecurityService.authenticate()`](file:///home/paul/itas-audit-system/backend/bs-taxaudit-core-server/src/main/java/mor/itas/infrastructure/security/BackofficeSecurityService.java#L455-L515), before checking the password, the backend enforces two security gates:
 1. **Deactivated Account Check (`HTTP 403 ACCOUNT_INACTIVE`)**: If a System Admin deactivated the account (`status == "INACTIVE"`), login is immediately rejected.
 2. **Brute-Force Lockout Check (`HTTP 423 ACCOUNT_LOCKED`)**: If the user previously had 5 failed attempts and `now.isBefore(rec.getLockedUntil())`, login is blocked with the exact number of minutes remaining. Once the 15-minute window expires, the account automatically unlocks.
 
 ```java
-// File: BackofficeSecurityService.java (Lines 526-560)
+// File: BackofficeSecurityService.java
 // 1. Check if account is deactivated by System Admin
 if ("INACTIVE".equalsIgnoreCase(rec.getStatus())) {
     recordAuditEvent("LOGIN_BLOCKED_INACTIVE", "WARNING", rec.getUsername(), rec.getUsername(), rec.getUserType(), rec.getAssignedLocation(), ipAddress,
@@ -198,17 +207,17 @@ if (rec.getLockedUntil() != null) {
 ---
 
 ### Step 5: BCrypt Password Verification & Failed-Attempt Counter (`authenticate`)
-Next, [`BackofficeSecurityService.authenticate()`](file:///home/paul/itas-audit-system/backend/bs-taxaudit-core-server/src/main/java/mor/itas/infrastructure/security/BackofficeSecurityService.java#L562-L606) verifies the password using `BCryptPasswordEncoder.matches(rawPassword, passwordHash)`:
-- If the user has **not** set a custom password yet (`!rec.isCustomPasswordSet()`), it accepts the default password (`Mor@2026!`) or legacy seed password (`password123`). Once the user changes their password (`customPasswordSet = true`), only their personal BCrypt hash is accepted.
+Next, [`BackofficeSecurityService.authenticate()`](file:///home/paul/itas-audit-system/backend/bs-taxaudit-core-server/src/main/java/mor/itas/infrastructure/security/BackofficeSecurityService.java#L517-L565) verifies the password using `BCryptPasswordEncoder.matches(rawPassword, passwordHash)`:
+- Unmodified accounts only accept the official initial default password (`Mor@2026!`). Legacy passwords like `password123` are strictly rejected. Once the user changes their password (`customPasswordSet = true`), only their personal BCrypt hash is accepted.
 - If the password is wrong, `failedLoginCount` is incremented and persisted to PostgreSQL (`t_user`). On the **5th failed attempt**, `status` is set to `"LOCKED"`, `lockedUntil` is set to `now.plusMinutes(15)`, and `HTTP 423` is returned:
 
 ```java
-// File: BackofficeSecurityService.java (Lines 562-606)
-// 3. Verify Password using BCrypt
+// File: BackofficeSecurityService.java
+// 3. Verify Password using BCrypt (strictly verify against stored BCrypt hash; legacy password123 is NOT accepted)
 boolean passwordValid = passwordEncoder.matches(password, rec.getPasswordHash());
 if (!passwordValid && !rec.isCustomPasswordSet()) {
-    // Allow initial default password (Mor@2026!) or legacy seed password (password123) on unmodified accounts
-    if (DEFAULT_INITIAL_PASSWORD.equals(password) || LEGACY_SEED_PASSWORD.equals(password)) {
+    // Allow only the current initial default password (Mor@2026!) on unmodified accounts
+    if (DEFAULT_INITIAL_PASSWORD.equals(password)) {
         passwordValid = true;
     }
 }

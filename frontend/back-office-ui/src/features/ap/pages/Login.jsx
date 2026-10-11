@@ -3,7 +3,7 @@ import { Eye, EyeOff, Lock, ArrowRight, HelpCircle, Activity, FileText, Mail, Al
 import { useAuth } from '../../../context/AuthContext.jsx';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, error: authError, clearError } = useAuth();
   
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
@@ -11,27 +11,34 @@ export default function Login() {
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
 
+  const displayError = error || authError;
+
+  const handleClearError = () => {
+    if (error) setError('');
+    if (authError && clearError) clearError();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const inputValue = email.trim();
     
     if (!inputValue) { 
-      setError('Username or email is required.');    
+      setError('Invalid username or email. Please enter your registered MOR email or username.');    
       return; 
     }
 
     if (!password || !password.trim()) {
-      setError('Password is required.');
+      setError('Invalid password. Please enter your password.');
       return;
     }
     
-    setError('');
+    handleClearError();
     setLoading(true);
 
     try {
       await login(inputValue, password);
     } catch (err) {
-      setError(err.message || 'Invalid username/email or password.');
+      setError(err?.message || 'Invalid username/email or password. Please verify your credentials and try again.');
     } finally {
       setLoading(false);
     }
@@ -85,6 +92,19 @@ export default function Login() {
             <p className="text-sm text-gray-400">Sign in to continue to the ITAS Tax Audit System.</p>
           </div>
 
+          {displayError && (
+            <div
+              role="alert"
+              className="text-xs text-red-200 bg-red-950/80 border border-red-600/80 rounded-xl px-4 py-3.5 flex items-start gap-3 shadow-lg shadow-red-950/50"
+            >
+              <AlertCircle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-bold text-red-300 text-[12px]">Authentication Failed</p>
+                <p className="text-red-200/95 leading-relaxed">{displayError}</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
               <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-[0.08em] mb-2">
@@ -102,12 +122,12 @@ export default function Login() {
                   value={email}
                   onChange={e => {
                     setEmail(e.target.value);
-                    if (error) setError('');
+                    handleClearError();
                   }}
                   placeholder="Enter your official MOR email or username"
-                  className="w-full pl-10 pr-4 py-3 bg-[#111827] border border-gray-800 text-white placeholder-gray-500 text-[13px]
-                             rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500
-                             transition-all duration-200 font-mono"
+                  className={`w-full pl-10 pr-4 py-3 bg-[#111827] border ${
+                    displayError ? 'border-red-600/80 focus:ring-red-500/40 focus:border-red-500' : 'border-gray-800 focus:ring-blue-500/40 focus:border-blue-500'
+                  } text-white placeholder-gray-500 text-[13px] rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 font-mono`}
                 />
               </div>
               <p className="text-[11px] text-gray-500 mt-1.5">
@@ -133,12 +153,12 @@ export default function Login() {
                   value={password}
                   onChange={e => {
                     setPassword(e.target.value);
-                    if (error) setError('');
+                    handleClearError();
                   }}
                   placeholder="Enter your password"
-                  className="w-full pl-10 pr-11 py-3 bg-[#111827] border border-gray-800 text-white placeholder-gray-600 text-[13px]
-                             rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500
-                             transition-all duration-200"
+                  className={`w-full pl-10 pr-11 py-3 bg-[#111827] border ${
+                    displayError ? 'border-red-600/80 focus:ring-red-500/40 focus:border-red-500' : 'border-gray-800 focus:ring-blue-500/40 focus:border-blue-500'
+                  } text-white placeholder-gray-600 text-[13px] rounded-xl focus:outline-none focus:ring-2 transition-all duration-200`}
                 />
                 <button
                   type="button"
@@ -154,13 +174,6 @@ export default function Login() {
                 <span>15-Min Idle Timeout</span>
               </p>
             </div>
-
-            {error && (
-              <div className="text-xs text-red-300 bg-red-950/60 border border-red-700/70 rounded-xl px-3.5 py-3 flex items-start gap-2.5">
-                <AlertCircle size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
 
             <button
               type="submit"

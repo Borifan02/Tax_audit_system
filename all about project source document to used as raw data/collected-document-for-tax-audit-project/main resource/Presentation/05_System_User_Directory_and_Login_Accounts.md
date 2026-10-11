@@ -3,12 +3,12 @@
 **Generated Date:** October 2026 / Tikimt 2019 E.C.  
 **Status:** Production-Ready Synchronized System Roster (BCrypt + 5-Attempt Lockout + Signed JWT)  
 **Naming Convention:** Full Role Title Prefixes on Username and Email (`role-id` / `role.firstname.lastname@mor.gov.et`)  
-**Default Password for all seed accounts:** `Mor@2026!` *(legacy seed password `password123` is also accepted until the user sets a custom password)*
+**Default Password for all initial accounts:** `Mor@2026!` *(legacy `password123` is strictly disallowed; once a user changes their password, only their new custom password is accepted)*
 
 > [!TIP]
 > **Quick Login Instructions:**
 > - You can log in using either the **Official Email** or the **Assigned System Username / Legacy Alias**.
-> - Both the username/email and password are strictly validated by the backend (`POST /api/v1/backoffice/auth/login`). Any unrecognized username/email or wrong password returns `HTTP 401 Unauthorized`.
+> - Both the username/email and password are strictly validated by the backend (`POST /api/v1/backoffice/auth/login`). Any unrecognized username/email or wrong password returns `HTTP 401 Unauthorized` and displays an immediate `"Invalid username/email or password"` error on the Login screen.
 
 ---
 

@@ -89,6 +89,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => sessionStorage.getItem('mor_jwt_token') || null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState('');
   const [idleCountdown, setIdleCountdown] = useState(null);
   const directoryUsersRef = useRef([]);
   const lastActivityRef = useRef(Date.now());
@@ -97,6 +98,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     setMustChangePassword(false);
+    setAuthError('');
     setIdleCountdown(null);
     storage.remove('session');
     sessionStorage.removeItem('mor_jwt_token');
@@ -231,13 +233,12 @@ export const AuthProvider = ({ children }) => {
 
   // Login user — verifies credentials against backend BCrypt + JWT endpoint
   const login = useCallback(async (emailOrUsernameOrObj, password) => {
-    setLoading(true);
+    setAuthError('');
     try {
       if (!emailOrUsernameOrObj) {
-        throw new Error('Username or email is required');
+        throw new Error('Username or email is required.');
       }
 
-      // If a user object is passed directly (e.g. internal switch), authenticate with default password if none supplied
       let identifier = '';
       if (typeof emailOrUsernameOrObj === 'object' && emailOrUsernameOrObj !== null) {
         identifier = emailOrUsernameOrObj.username || emailOrUsernameOrObj.email || emailOrUsernameOrObj.id || '';
@@ -246,10 +247,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (!identifier) {
-        throw new Error('Username or email is required');
+        throw new Error('Username or email is required.');
       }
       if (!password || !String(password).trim()) {
-        throw new Error('Password is required to sign in to the MOR Back-Office.');
+        throw new Error('Password is required to sign in to the MOR Tax Audit System.');
       }
 
       // 1. Primary: Call backend BCrypt & JWT Authentication Endpoint
@@ -279,6 +280,7 @@ export const AuthProvider = ({ children }) => {
         const jwtToken = backendAuthRes.token || null;
         const forcePwdChange = Boolean(backendAuthRes.mustChangePassword);
 
+        setAuthError('');
         setUser(completeUser);
         setToken(jwtToken);
         setMustChangePassword(forcePwdChange);
@@ -301,7 +303,7 @@ export const AuthProvider = ({ children }) => {
 
       // 2. Offline fallback ONLY if backend server was completely unreachable
       if (networkFailed) {
-        if (password !== 'Mor@2026!' && password !== 'password123') {
+        if (password !== 'Mor@2026!') {
           throw new Error('Invalid username/email or password.');
         }
         const inputLower = identifier.toLowerCase();
@@ -323,6 +325,7 @@ export const AuthProvider = ({ children }) => {
           throw new Error('Invalid username/email or password.');
         }
         const completeUser = buildCompleteUserProfile(found);
+        setAuthError('');
         setUser(completeUser);
         storage.set('session', { id: completeUser.id, role: completeUser.role, user: completeUser });
         sessionStorage.setItem('userId', completeUser.id);
@@ -332,13 +335,13 @@ export const AuthProvider = ({ children }) => {
 
       throw new Error('Invalid username/email or password.');
     } catch (err) {
+      const msg = err?.message || 'Invalid username/email or password.';
+      setAuthError(msg);
       setUser(null);
       setToken(null);
       storage.remove('session');
       sessionStorage.removeItem('mor_jwt_token');
       throw err;
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -418,6 +421,8 @@ export const AuthProvider = ({ children }) => {
       authContext,
       isAuthenticated: !!user,
       loading,
+      error: authError,
+      clearError: () => setAuthError(''),
       login,
       logout,
       changePassword,

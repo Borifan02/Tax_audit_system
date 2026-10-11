@@ -49,14 +49,12 @@ public class BackofficeSecurityService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
 
     public static final String DEFAULT_INITIAL_PASSWORD = "Mor@2026!";
-    private static final String LEGACY_SEED_PASSWORD = "password123";
     public static final int MAX_FAILED_ATTEMPTS = 5;
     public static final int LOCKOUT_DURATION_MINUTES = 15;
     private static final long JWT_EXPIRY_SECONDS = 8 * 3600L; // 8 hours max token lifetime
     private static final String JWT_SECRET = "MOR-ITAS-BackOffice-HMAC-SHA256-SecretKey-2026-Ethiopia-Revenue-Security";
 
     private String defaultPasswordHash;
-    private String legacyPasswordHash;
 
     // Security state indexed by canonical userId string (lowercase)
     private final Map<String, UserSecurityRecord> securityRecords = new ConcurrentHashMap<>();
@@ -128,7 +126,6 @@ public class BackofficeSecurityService {
     @PostConstruct
     public void init() {
         this.defaultPasswordHash = passwordEncoder.encode(DEFAULT_INITIAL_PASSWORD);
-        this.legacyPasswordHash = passwordEncoder.encode(LEGACY_SEED_PASSWORD);
         synchronizeAllExistingUsers();
         recordAuditEvent("SYSTEM_SECURITY_INIT", "INFO", "SYSTEM", "ALL_USERS", "SYSTEM_ADMIN", "FEDERAL", "127.0.0.1",
                 "MOR Back-Office BCrypt Password Engine, 5-attempt Lockout Guard, and Signed JWT Service initialized (" + securityRecords.size() + " accounts protected).");
@@ -149,7 +146,10 @@ public class BackofficeSecurityService {
             registerOrMergeFromDomain(u);
         }
 
-        // 3. Load from PostgreSQL t_user (UserJpaRepository)
+        // 3. Register frontend SEED_USERS aliases so every single existing frontend user works out-of-the-box
+        registerFrontendSeedAliases();
+
+        // 4. Load from PostgreSQL t_user (UserJpaRepository) so custom passwords & lockouts override defaults
         try {
             for (UserEntity entity : userJpaRepository.findAll()) {
                 registerOrMergeFromEntity(entity);
@@ -157,9 +157,6 @@ public class BackofficeSecurityService {
         } catch (Exception e) {
             log.warn("Could not read initial t_user security records: {}", e.getMessage());
         }
-
-        // 4. Register frontend SEED_USERS aliases so every single existing frontend user works out-of-the-box
-        registerFrontendSeedAliases();
     }
 
     private void registerOrMergeFromMap(Map<String, Object> m) {
@@ -203,9 +200,13 @@ public class BackofficeSecurityService {
 
     private void registerOrMergeFromDomain(User u) {
         if (u == null || u.getUsername() == null) return;
-        String canonicalKey = u.getUsername().toLowerCase();
-        UserSecurityRecord rec = securityRecords.get(canonicalKey);
+        UserSecurityRecord rec = resolveSecurityRecord(u.getUsername());
+        if (rec == null && u.getEmail() != null) {
+            rec = resolveSecurityRecord(u.getEmail());
+        }
+        String canonicalKey;
         if (rec == null) {
+            canonicalKey = u.getUsername().toLowerCase();
             rec = UserSecurityRecord.builder()
                     .userId(u.getUserId() != null ? u.getUserId().toString() : u.getUsername())
                     .username(u.getUsername())
@@ -223,6 +224,8 @@ public class BackofficeSecurityService {
                     .createdAt(u.getCreatedDate() != null ? u.getCreatedDate() : OffsetDateTime.now())
                     .build();
             securityRecords.put(canonicalKey, rec);
+        } else {
+            canonicalKey = rec.getUsername().toLowerCase();
         }
         indexAliases(canonicalKey,
                 u.getUserId() != null ? u.getUserId().toString() : null,
@@ -231,9 +234,14 @@ public class BackofficeSecurityService {
 
     private void registerOrMergeFromEntity(UserEntity e) {
         if (e == null || e.getUsername() == null) return;
-        String canonicalKey = e.getUsername().toLowerCase();
-        UserSecurityRecord rec = securityRecords.get(canonicalKey);
+        UserSecurityRecord rec = resolveSecurityRecord(e.getUsername());
+        if (rec == null && e.getEmail() != null) {
+            rec = resolveSecurityRecord(e.getEmail());
+        }
+        boolean hasCustomPassword = e.getPasswordHash() != null && e.getPasswordChangedAt() != null;
+        String canonicalKey;
         if (rec == null) {
+            canonicalKey = e.getUsername().toLowerCase();
             rec = UserSecurityRecord.builder()
                     .userId(e.getUserId() != null ? e.getUserId().toString() : e.getUsername())
                     .username(e.getUsername())
@@ -244,8 +252,8 @@ public class BackofficeSecurityService {
                     .assignedLevel(e.getAssignedLevel())
                     .assignedLocation(e.getAssignedLocation())
                     .status(e.getStatus() != null ? e.getStatus() : "ACTIVE")
-                    .passwordHash(e.getPasswordHash() != null ? e.getPasswordHash() : defaultPasswordHash)
-                    .customPasswordSet(e.getPasswordChangedAt() != null)
+                    .passwordHash(hasCustomPassword ? e.getPasswordHash() : defaultPasswordHash)
+                    .customPasswordSet(hasCustomPassword)
                     .mustChangePassword(Boolean.TRUE.equals(e.getMustChangePassword()))
                     .failedLoginCount(e.getFailedLoginCount() != null ? e.getFailedLoginCount() : 0)
                     .lockedUntil(e.getLockedUntil())
@@ -255,10 +263,14 @@ public class BackofficeSecurityService {
                     .build();
             securityRecords.put(canonicalKey, rec);
         } else {
-            if (e.getPasswordHash() != null && e.getPasswordChangedAt() != null) {
+            canonicalKey = rec.getUsername().toLowerCase();
+            if (hasCustomPassword) {
                 rec.setPasswordHash(e.getPasswordHash());
                 rec.setCustomPasswordSet(true);
                 rec.setPasswordChangedAt(e.getPasswordChangedAt());
+            } else {
+                rec.setPasswordHash(defaultPasswordHash);
+                rec.setCustomPasswordSet(false);
             }
             if (e.getMustChangePassword() != null) {
                 rec.setMustChangePassword(e.getMustChangePassword());
@@ -412,8 +424,13 @@ public class BackofficeSecurityService {
 
     private void seedExtraAccount(String username, String legacyUsername, String email, String fullName,
                                   String userType, String auditType, String level, String location) {
-        String key = username.toLowerCase();
-        if (!securityRecords.containsKey(key)) {
+        UserSecurityRecord existing = resolveSecurityRecord(username);
+        if (existing == null && legacyUsername != null) existing = resolveSecurityRecord(legacyUsername);
+        if (existing == null && email != null) existing = resolveSecurityRecord(email);
+
+        String key;
+        if (existing == null) {
+            key = username.toLowerCase();
             UserSecurityRecord rec = UserSecurityRecord.builder()
                     .userId(username)
                     .username(username)
@@ -432,6 +449,8 @@ public class BackofficeSecurityService {
                     .createdAt(OffsetDateTime.now())
                     .build();
             securityRecords.put(key, rec);
+        } else {
+            key = existing.getUsername().toLowerCase();
         }
         indexAliases(key, username, username, legacyUsername, email, null);
     }
@@ -563,11 +582,10 @@ public class BackofficeSecurityService {
             }
         }
 
-        // 3. Verify Password using BCrypt
+        // 3. Verify Password using BCrypt strictly (legacy 'password123' is NEVER accepted)
         boolean passwordValid = passwordEncoder.matches(password, rec.getPasswordHash());
         if (!passwordValid && !rec.isCustomPasswordSet()) {
-            // Allow initial default password (Mor@2026!) or legacy seed password (password123) on unmodified accounts
-            if (DEFAULT_INITIAL_PASSWORD.equals(password) || LEGACY_SEED_PASSWORD.equals(password)) {
+            if (DEFAULT_INITIAL_PASSWORD.equals(password)) {
                 passwordValid = true;
             }
         }
@@ -650,7 +668,7 @@ public class BackofficeSecurityService {
         if (!skipCurrentCheck) {
             boolean currentValid = currentPassword != null && passwordEncoder.matches(currentPassword, rec.getPasswordHash());
             if (!currentValid && (!rec.isCustomPasswordSet() || rec.isMustChangePassword())) {
-                if (DEFAULT_INITIAL_PASSWORD.equals(currentPassword) || LEGACY_SEED_PASSWORD.equals(currentPassword)) {
+                if (DEFAULT_INITIAL_PASSWORD.equals(currentPassword)) {
                     currentValid = true;
                 }
             }
