@@ -24,5 +24,8 @@ dist/
 # Presentation documents
 **/Presentation/**
 
+# Archives & Temporary Data
+*.zip
+
 # AI assistant configs
 .claude/

@@ -248,24 +248,24 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
     await onCreateFinding({
       reference: newFindingRef,
       auditArea: exc.taxHead === 'VAT' ? 'Value Added Tax (VAT)' : exc.taxHead === 'CIT' ? 'Corporate Income Tax (CIT)' : exc.taxHead === 'WHT' ? 'Withholding Tax (WHT)' : 'Customs & Excise',
-      title: `${exc.anomalyType} - ${exc.counterparty} ($${exc.amount.toLocaleString()})`,
-      description: `Automated CAAT testing (Rule: ${exc.ruleCode}) on ${exc.accountName} isolated transaction ${exc.transactionRef} dated ${exc.transactionDate} for $${exc.amount.toLocaleString()}. ${exc.details}`,
-      condition: `Automated CAAT testing (Rule: ${exc.ruleCode}) on ${exc.accountName} isolated transaction ${exc.transactionRef} dated ${exc.transactionDate} for $${exc.amount.toLocaleString()}. ${exc.details}`,
+      title: `${exc.anomalyType} - ${exc.counterparty} ($${exc.amount?.toLocaleString()})`,
+      description: `Automated CAAT testing (Rule: ${exc.ruleCode}) on ${exc.accountName} isolated transaction ${exc.transactionRef} dated ${exc.transactionDate} for $${exc.amount?.toLocaleString()}. ${exc.details}`,
+      condition: `Automated CAAT testing (Rule: ${exc.ruleCode}) on ${exc.accountName} isolated transaction ${exc.transactionRef} dated ${exc.transactionDate} for $${exc.amount?.toLocaleString()}. ${exc.details}`,
       criteria: exc.taxHead === 'VAT'
         ? 'Value Added Tax Act Section 12 (Mandatory Electronic Invoicing & Output Tax Invoicing Requirements).'
         : exc.taxHead === 'CIT'
         ? 'Income Tax Act Section 15 (Wholly and Exclusively Incurred Deductibility Standard) and Section 23 (Transfer Pricing Substance).'
         : 'Tax Administration Act Section 83 (Statutory Penalty for Deliberate Tax Evasion).',
       cause: 'Taxpayer internal control breakdown and failure to reconcile physical dispatch logs with central electronic tax gateways.',
-      effect: `Loss of statutory public revenue amounting to $${underDeclared.toLocaleString()} plus statutory 20% penalty ($${penaltyAmount.toLocaleString()}) and late interest ($${interestAmount.toLocaleString()}).`,
+      effect: `Loss of statutory public revenue amounting to $${underDeclared?.toLocaleString()} plus statutory 20% penalty ($${penaltyAmount?.toLocaleString()}) and late interest ($${interestAmount?.toLocaleString()}).`,
       underDeclaredAmount: underDeclared,
       penaltyRate: 20,
       penaltyAmount,
       interestAmount,
       totalTaxImpact,
       auditorAnalysis: `CAAT forensic analysis verified source ledger entries against external third-party repositories. Transaction ref ${exc.transactionRef} demonstrates prima facie non-compliance.`,
-      conclusion: `Tax adjustment of $${totalTaxImpact.toLocaleString()} recommended for assessment notice determination.`,
-      recommendation: `Issue statutory additional assessment for $${totalTaxImpact.toLocaleString()} and mandate automated real-time TIMS gateway integration.`,
+      conclusion: `Tax adjustment of $${totalTaxImpact?.toLocaleString()} recommended for assessment notice determination.`,
+      recommendation: `Issue statutory additional assessment for $${totalTaxImpact?.toLocaleString()} and mandate automated real-time TIMS gateway integration.`,
       status: 'CONFIRMED',
       isSignificant: exc.riskLevel === 'CRITICAL' || exc.riskLevel === 'HIGH',
       indicatesFraud: exc.riskLevel === 'CRITICAL',
@@ -299,7 +299,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
     await onCreateQuery({
       reference: queryRef,
       subject: `Statutory Explanation Demand: ${exc.anomalyType} (${exc.transactionRef})`,
-      question: `In accordance with Section 38 of the Tax Administration Act, you are formally required to provide documentary justification for transaction ref ${exc.transactionRef} of $${exc.amount.toLocaleString()} involving ${exc.counterparty} dated ${exc.transactionDate}. Issue identified: ${exc.details}`,
+      question: `In accordance with Section 38 of the Tax Administration Act, you are formally required to provide documentary justification for transaction ref ${exc.transactionRef} of $${exc.amount?.toLocaleString()} involving ${exc.counterparty} dated ${exc.transactionDate}. Issue identified: ${exc.details}`,
       statutoryBasis: 'Tax Administration Act Section 38 (Power to Call for Records and Require Explanations under Oath).',
       dueDate,
       status: 'OPEN',
@@ -323,7 +323,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
     const evRef = `EVD-CAAT-${exc.transactionRef.slice(-6)}`;
     await onAddEvidence({
       reference: evRef,
-      description: `CAAT Forensic Ledger Extraction: ${exc.anomalyType} on ${exc.counterparty} ($${exc.amount.toLocaleString()})`,
+      description: `CAAT Forensic Ledger Extraction: ${exc.anomalyType} on ${exc.counterparty} ($${exc.amount?.toLocaleString()})`,
       source: exc.taxHead === 'CUSTOMS' ? 'Customs Declaration (ASYCUDA)' : exc.taxHead === 'VAT' ? 'Electronic Invoicing System (TIMS)' : 'CAAT Automated Forensic Engine',
       date: exc.transactionDate.split(' ')[0],
       status: 'Verified',
@@ -464,7 +464,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="bg-white p-3 rounded border border-gray-200 shadow-2xs">
           <span className="text-2xs font-bold text-gray-500 uppercase tracking-wider block">Total Mined</span>
-          <div className="text-lg font-bold font-mono text-gray-900 mt-0.5">{totalMined.toLocaleString()}</div>
+          <div className="text-lg font-bold font-mono text-gray-900 mt-0.5">{totalMined?.toLocaleString()}</div>
           <span className="text-2xs text-gray-400">SAP entries scanned</span>
         </div>
 
@@ -482,7 +482,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
 
         <div className="bg-white p-3 rounded border border-gray-200 shadow-2xs">
           <span className="text-2xs font-bold text-gray-500 uppercase tracking-wider block">Flagged Exposure</span>
-          <div className="text-lg font-bold font-mono text-amber-700 mt-0.5">${totalFlaggedAmount.toLocaleString()}</div>
+          <div className="text-lg font-bold font-mono text-amber-700 mt-0.5">${totalFlaggedAmount?.toLocaleString()}</div>
           <span className="text-2xs text-gray-400">Calculated variance</span>
         </div>
 
@@ -577,7 +577,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
                   <span>{caatAudit.caatToolName}</span>
                   <span className="text-gray-300">·</span>
                   <span className="text-[11px] font-mono text-gray-500">
-                    Last Run: {new Date(caatAudit.executionTimestamp).toLocaleString()}
+                    Last Run: {new Date(caatAudit.executionTimestamp)?.toLocaleString()}
                   </span>
                 </div>
                 <div className="text-[11px] text-gray-500 mt-0.5">
@@ -656,7 +656,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
                   <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1 border-t border-gray-100 font-mono">
                     <div>
                       <span className="text-[10px] text-gray-400 font-sans block uppercase">Sampled</span>
-                      <span className="font-bold text-gray-800">{rule.sampleSize.toLocaleString()}</span>
+                      <span className="font-bold text-gray-800">{rule.sampleSize?.toLocaleString()}</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-gray-400 font-sans block uppercase">Exceptions</span>
@@ -664,7 +664,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
                     </div>
                     <div>
                       <span className="text-[10px] text-gray-400 font-sans block uppercase">Variance ($)</span>
-                      <span className="font-bold text-rose-700">${rule.varianceAmount.toLocaleString()}</span>
+                      <span className="font-bold text-rose-700">${rule.varianceAmount?.toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -823,7 +823,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
             <div className="flex items-center justify-between text-2xs text-gray-500 font-mono pt-1 border-t border-gray-100">
               <span>Showing {filteredExceptions.length} of {exceptions.length} isolated transactions</span>
               <span className="text-indigo-700 font-semibold">
-                Exposure: ${filteredExceptions.reduce((s, e) => s + e.amount, 0).toLocaleString()}
+                Exposure: ${filteredExceptions.reduce((s, e) => s + e.amount, 0)?.toLocaleString()}
               </span>
             </div>
           </div>
@@ -868,7 +868,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
                         </td>
 
                         <td className="py-3 px-3 text-right font-mono font-bold text-gray-900 whitespace-nowrap">
-                          ${exc.amount.toLocaleString()}
+                          ${exc.amount?.toLocaleString()}
                         </td>
 
                         <td className="py-3 px-3 text-center whitespace-nowrap">
@@ -1435,7 +1435,7 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
               <div className="grid grid-cols-3 gap-3 bg-gray-50 p-3 rounded border border-gray-200 font-mono">
                 <div>
                   <span className="text-[10px] text-gray-400 uppercase block font-sans">Amount</span>
-                  <span className="font-bold text-gray-900">${selectedExceptionDetail.amount.toLocaleString()}</span>
+                  <span className="font-bold text-gray-900">${selectedExceptionDetail.amount?.toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-[10px] text-gray-400 uppercase block font-sans">Date</span>

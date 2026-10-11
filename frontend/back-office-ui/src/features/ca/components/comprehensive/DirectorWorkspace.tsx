@@ -293,7 +293,7 @@ export const DirectorWorkspace: React.FC<DirectorWorkspaceProps> = ({
                       <div className="text-2xs text-slate-500 flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                         <span>Risk Score: <strong className="text-rose-700">{c.riskScore}/100</strong></span>
                         <span className="font-bold text-slate-900 font-mono">
-                          ${(c.totalAssessment || 0).toLocaleString()}
+                          ${(c.totalAssessment || 0)?.toLocaleString()}
                         </span>
                       </div>
 
@@ -385,7 +385,7 @@ export const DirectorWorkspace: React.FC<DirectorWorkspaceProps> = ({
                       Executive Exposure Assessment
                     </span>
                     <span className="text-xl font-bold font-mono text-purple-950">
-                      ${totalAssessment.toLocaleString()}
+                      ${totalAssessment?.toLocaleString()}
                     </span>
                     <span className="block text-[10px] text-purple-700 mt-0.5 font-medium">
                       Risk Score: {activeCase.riskScore}/100 (HIGH)
@@ -570,10 +570,10 @@ export const DirectorWorkspace: React.FC<DirectorWorkspaceProps> = ({
                       <div className="text-right shrink-0">
                         <span className="text-2xs text-slate-500 block">Total Impact</span>
                         <span className="font-mono font-bold text-sm text-slate-900">
-                          ${f.totalTaxImpact.toLocaleString()}
+                          ${f.totalTaxImpact?.toLocaleString()}
                         </span>
                         <span className="text-[10px] text-slate-500 block">
-                          Tax: ${f.underDeclaredAmount.toLocaleString()} | Pen: ${f.penaltyAmount.toLocaleString()}
+                          Tax: ${f.underDeclaredAmount?.toLocaleString()} | Pen: ${f.penaltyAmount?.toLocaleString()}
                         </span>
                       </div>
                     </div>

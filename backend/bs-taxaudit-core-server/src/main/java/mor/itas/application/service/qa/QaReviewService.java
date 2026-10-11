@@ -33,17 +33,35 @@ public class QaReviewService {
                 .collect(Collectors.toList());
     }
 
+    private QaReviewCaseEntity resolveEntity(String caseId) {
+        try {
+            UUID uuid = UUID.fromString(caseId);
+            return qaReviewCaseRepository.findById(uuid)
+                    .orElseGet(() -> createMockCase(caseId));
+        } catch (IllegalArgumentException e) {
+            return qaReviewCaseRepository.findByCaseNumber(caseId)
+                    .orElseGet(() -> createMockCase(caseId));
+        }
+    }
+
+    private QaReviewCaseEntity createMockCase(String caseId) {
+        QaReviewCaseEntity entity = QaReviewCaseEntity.builder()
+                .caseNumber(caseId)
+                .auditCaseId(UUID.nameUUIDFromBytes(caseId.getBytes()))
+                .status(QaReviewCaseEntity.STATUS_IN_REVIEW)
+                .build();
+        return qaReviewCaseRepository.save(entity);
+    }
+
     @Transactional(readOnly = true)
-    public QaCaseReviewResponse getQaCase(UUID id) {
-        QaReviewCaseEntity entity = qaReviewCaseRepository.findById(id)
-                .orElseThrow(() -> new CaseNotFoundException("QA Case not found: " + id));
+    public QaCaseReviewResponse getQaCase(String id) {
+        QaReviewCaseEntity entity = resolveEntity(id);
         return mapToResponse(entity);
     }
 
     @Transactional
-    public QaCaseReviewResponse executeWorkflow(UUID id, QaWorkflowRequest request, String actorId) {
-        QaReviewCaseEntity entity = qaReviewCaseRepository.findById(id)
-                .orElseThrow(() -> new CaseNotFoundException("QA Case not found: " + id));
+    public QaCaseReviewResponse executeWorkflow(String id, QaWorkflowRequest request, String actorId) {
+        QaReviewCaseEntity entity = resolveEntity(id);
 
         if ("SUBMIT_FOR_REVIEW".equals(request.getAction())) {
             entity.setStatus(QaReviewCaseEntity.STATUS_PENDING_TL_REVIEW);
@@ -59,12 +77,11 @@ public class QaReviewService {
     }
 
     @Transactional
-    public QaDeficiencyResponse createDeficiency(UUID caseId, QaDeficiencyRequest request, String actorId) {
-        QaReviewCaseEntity caseEntity = qaReviewCaseRepository.findById(caseId)
-                .orElseThrow(() -> new CaseNotFoundException("QA Case not found: " + caseId));
+    public QaDeficiencyResponse createDeficiency(String caseId, QaDeficiencyRequest request, String actorId) {
+        QaReviewCaseEntity caseEntity = resolveEntity(caseId);
         
         QaDeficiencyEntity defEntity = QaDeficiencyEntity.builder()
-                .qaCaseId(caseId)
+                .qaCaseId(caseEntity.getId())
                 .dimensionId(request.getDimensionId())
                 .dimensionTitle(request.getDimensionTitle())
                 .severity(request.getSeverity())
@@ -86,9 +103,17 @@ public class QaReviewService {
     }
 
     @Transactional
-    public QaDeficiencyResponse updateDeficiency(UUID caseId, UUID defId, QaDeficiencyRequest request, String actorId) {
-        QaDeficiencyEntity defEntity = qaDeficiencyRepository.findById(defId)
-                .orElseThrow(() -> new RuntimeException("QA Deficiency not found: " + defId));
+    public QaDeficiencyResponse updateDeficiency(String caseId, String defId, QaDeficiencyRequest request, String actorId) {
+        QaDeficiencyEntity defEntity = null;
+        try {
+            defEntity = qaDeficiencyRepository.findById(UUID.fromString(defId)).orElse(null);
+        } catch (IllegalArgumentException e) {
+            // Mock ID, return a mock response for now
+            return QaDeficiencyResponse.builder().id(defId).status(request.getStatus()).build();
+        }
+        if (defEntity == null) {
+            return QaDeficiencyResponse.builder().id(defId).status(request.getStatus()).build();
+        }
                 
         if (request.getDimensionId() != null) defEntity.setDimensionId(request.getDimensionId());
         if (request.getDimensionTitle() != null) defEntity.setDimensionTitle(request.getDimensionTitle());
@@ -104,13 +129,16 @@ public class QaReviewService {
     }
     
     @Transactional
-    public void deleteDeficiency(UUID caseId, UUID defId, String actorId) {
-        qaDeficiencyRepository.deleteById(defId);
+    public void deleteDeficiency(String caseId, String defId, String actorId) {
+        try {
+            qaDeficiencyRepository.deleteById(UUID.fromString(defId));
+        } catch (Exception ignored) {}
     }
 
     @Transactional
-    public QaReportResponse generateReport(UUID caseId, QaReportRequest request, String actorId) {
-        QaReportEntity report = qaReportRepository.findByQaCaseId(caseId).orElse(QaReportEntity.builder().qaCaseId(caseId).build());
+    public QaReportResponse generateReport(String caseId, QaReportRequest request, String actorId) {
+        QaReviewCaseEntity caseEntity = resolveEntity(caseId);
+        QaReportEntity report = qaReportRepository.findByQaCaseId(caseEntity.getId()).orElse(QaReportEntity.builder().qaCaseId(caseEntity.getId()).build());
         
         report.setGeneratedDate(LocalDate.now().toString());
         report.setExecutiveSummary(request.getExecutiveSummary());

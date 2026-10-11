@@ -34,9 +34,10 @@ export function getCurrentUserId(): string {
 }
 
 function getRequestHeaders(additional?: Record<string, string>): Record<string, string> {
+  const activeUser = sessionStorage.getItem('userId') || localStorage.getItem('itas_current_user_id') || currentUserId;
   return {
     'Content-Type': 'application/json',
-    'X-User-Id': currentUserId,
+    'X-Actor-Id': activeUser,
     ...(additional || {})
   };
 }
@@ -640,14 +641,14 @@ export const itasApi = {
         headers: getRequestHeaders(),
         body: JSON.stringify(payload)
       });
-      if (res.ok) return await res.json();
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `Workflow action failed with status ${res.status}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Workflow action failed with status ${res.status}`);
+      }
     } catch (err: any) {
       if (err.message && !err.message.includes('fetch')) {
         throw err;
       }
-      // Fallback only if offline/network error
     }
 
     const current = getLocalCaseData(caseId);

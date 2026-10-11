@@ -351,14 +351,14 @@ export const StepCompProcedures: React.FC<StepCompProceduresProps> = ({
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right tabular-nums text-gray-900">
-                        ${bs.auditeeBalance.toLocaleString()}
+                        ${bs.auditeeBalance?.toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-right tabular-nums font-bold text-indigo-700">
-                        ${bs.auditedBalance.toLocaleString()}
+                        ${bs.auditedBalance?.toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-right tabular-nums">
                         <span className={bs.variance !== 0 ? 'text-rose-700 font-bold' : 'text-gray-500'}>
-                          {bs.variance !== 0 ? `$${bs.variance.toLocaleString()}` : '$0'}
+                          {bs.variance !== 0 ? `$${bs.variance?.toLocaleString()}` : '$0'}
                         </span>
                       </td>
                       <td className="py-3 px-4 font-sans whitespace-nowrap">
