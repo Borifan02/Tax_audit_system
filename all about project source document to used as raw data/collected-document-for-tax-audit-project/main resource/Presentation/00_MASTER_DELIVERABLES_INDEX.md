@@ -29,3 +29,8 @@ This directory contains the three complete, independent, and verified engineerin
 - [`03_Database_Schema/02_Entity_Relationship_Diagrams.md`](./03_Database_Schema/02_Entity_Relationship_Diagrams.md) — Master Enterprise ER Diagram + 6 Domain-Specific Mermaid `erDiagram` models.
 - [`03_Database_Schema/03_Complete_Consolidated_Schema_DDL.sql`](./03_Database_Schema/03_Complete_Consolidated_Schema_DDL.sql) — Complete **6,315-line** executable PostgreSQL DDL script (`pg_dump --schema-only`) covering all 124 tables, constraints, and indexes.
 - [`03_Database_Schema/04_Flyway_Migrations_Catalog_and_Lineage.md`](./03_Database_Schema/04_Flyway_Migrations_Catalog_and_Lineage.md) — Complete catalog of all 41 Flyway SQL migrations (`V0` to `V41`) and JPA `@Entity` mappings.
+
+---
+
+## Architecture & Code Flow Deep Dive
+- [`06_Spring_Boot_Layered_Architecture_and_Code_Flow_Deep_Dive.md`](./06_Spring_Boot_Layered_Architecture_and_Code_Flow_Deep_Dive.md) — Complete walkthrough of all 7 Spring Boot layers (`Security/Filters`, `Controllers/DTOs`, `Application Services/Use Cases`, `Domain Core/DDD`, `Persistence/JPA Repositories`, `External Engine Adapters`, and `PostgreSQL/Flyway Seeders`) with Mermaid diagrams and real project code traces.
