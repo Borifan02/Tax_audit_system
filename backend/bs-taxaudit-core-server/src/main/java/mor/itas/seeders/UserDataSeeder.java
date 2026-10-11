@@ -31,6 +31,7 @@ public class UserDataSeeder implements CommandLineRunner {
 
     private final UserJpaRepository userJpaRepo;
     private final AuditorRepository auditorRepo;
+    private final mor.itas.infrastructure.security.BackofficeSecurityService backofficeSecurityService;
     private final Set<String> assignedEmails = new HashSet<>();
     private final Set<String> assignedUsernames = new HashSet<>();
     private final java.util.Map<UUID, UserEntity> preservedUsers = new java.util.HashMap<>();
@@ -503,6 +504,8 @@ public class UserDataSeeder implements CommandLineRunner {
 
         // System Administrator
         seedUser("00000000-0000-0000-0000-000000000001", "sysadmin-01", "admin@mor.gov.et", "Dawit Solomon", "SYSTEM_ADMIN", null, "NATIONAL", "FEDERAL");
+
+        backofficeSecurityService.synchronizeAllExistingUsers();
 
         log.info("[UserDataSeeder] ✓ Seeded {} total users into t_user and {} auditors into t_auditor",
                  userJpaRepo.count(), auditorRepo.count());

@@ -607,7 +607,8 @@ public class BackofficeSecurityService {
     }
 
     /**
-     * Self-Service Password Change (validates current password + enforces MOR Password Policy).
+     * Self-Service or Mandatory First-Login Password Change
+     * (validates current password when required + enforces MOR Password Character Policy).
      */
     public Map<String, Object> changePassword(String identifier, String currentPassword, String newPassword, String ipAddress) {
         UserSecurityRecord rec = resolveSecurityRecord(identifier);
@@ -615,24 +616,32 @@ public class BackofficeSecurityService {
             throw new IllegalArgumentException("User account not found.");
         }
 
-        boolean currentValid = passwordEncoder.matches(currentPassword, rec.getPasswordHash());
-        if (!currentValid && !rec.isCustomPasswordSet()) {
-            if (DEFAULT_INITIAL_PASSWORD.equals(currentPassword) || LEGACY_SEED_PASSWORD.equals(currentPassword)) {
-                currentValid = true;
+        // If user is in mandatory first-login/admin-reset flow and currentPassword is not re-entered,
+        // allow the authenticated user to set their new password directly.
+        boolean skipCurrentCheck = rec.isMustChangePassword() && (currentPassword == null || currentPassword.isBlank());
+
+        if (!skipCurrentCheck) {
+            boolean currentValid = currentPassword != null && passwordEncoder.matches(currentPassword, rec.getPasswordHash());
+            if (!currentValid && (!rec.isCustomPasswordSet() || rec.isMustChangePassword())) {
+                if (DEFAULT_INITIAL_PASSWORD.equals(currentPassword) || LEGACY_SEED_PASSWORD.equals(currentPassword)) {
+                    currentValid = true;
+                }
+            }
+            if (!currentValid) {
+                recordAuditEvent("PASSWORD_CHANGE_FAILED", "WARNING", rec.getUsername(), rec.getUsername(), rec.getUserType(), rec.getAssignedLocation(), ipAddress,
+                        "Failed password change attempt: current password did not match.");
+                throw new IllegalArgumentException("Current password is incorrect.");
             }
         }
-        if (!currentValid) {
-            recordAuditEvent("PASSWORD_CHANGE_FAILED", "WARNING", rec.getUsername(), rec.getUsername(), rec.getUserType(), rec.getAssignedLocation(), ipAddress,
-                    "Failed password change attempt: current password did not match.");
-            throw new IllegalArgumentException("Current password is incorrect.");
-        }
 
-        validatePasswordStrength(newPassword, rec.getUsername());
-        if (currentPassword.equals(newPassword)) {
+        String cleanNewPwd = newPassword != null ? newPassword.trim() : "";
+        validatePasswordStrength(cleanNewPwd, rec.getUsername());
+
+        if (!rec.isMustChangePassword() && currentPassword != null && !currentPassword.isBlank() && currentPassword.equals(cleanNewPwd)) {
             throw new IllegalArgumentException("New password cannot be the same as your current password.");
         }
 
-        rec.setPasswordHash(passwordEncoder.encode(newPassword));
+        rec.setPasswordHash(passwordEncoder.encode(cleanNewPwd));
         rec.setCustomPasswordSet(true);
         rec.setMustChangePassword(false);
         rec.setPasswordChangedAt(OffsetDateTime.now());
@@ -640,12 +649,15 @@ public class BackofficeSecurityService {
         rec.setLockedUntil(null);
         persistSecurityStateToDb(rec);
 
+        String freshJwt = generateSignedJwt(rec);
+
         recordAuditEvent("PASSWORD_CHANGED", "INFO", rec.getUsername(), rec.getUsername(), rec.getUserType(), rec.getAssignedLocation(), ipAddress,
-                "User changed their personal password via BCrypt security flow.");
+                "User updated their personal password (verified character policy & BCrypt hashed).");
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);
         result.put("message", "Password updated successfully.");
+        result.put("token", freshJwt);
         result.put("mustChangePassword", false);
         result.put("passwordChangedAt", rec.getPasswordChangedAt());
         result.put("user", toUserMap(rec));
@@ -655,26 +667,26 @@ public class BackofficeSecurityService {
     /**
      * MOR Password Strength Policy Validator:
      * - At least 8 characters
-     * - Uppercase, lowercase, number, and special character
+     * - Uppercase letter (A-Z)
+     * - Lowercase letter (a-z)
+     * - Digit (0-9)
+     * - Special symbol (any non-alphanumeric symbol such as @, !, #, $, %, etc.)
      */
     public void validatePasswordStrength(String password, String username) {
         if (password == null || password.length() < 8) {
             throw new IllegalArgumentException("Password must be at least 8 characters long.");
         }
-        if (!password.matches(".*[A-Z].*")) {
+        if (!java.util.regex.Pattern.compile("[A-Z]").matcher(password).find()) {
             throw new IllegalArgumentException("Password must contain at least one uppercase letter (A-Z).");
         }
-        if (!password.matches(".*[a-z].*")) {
+        if (!java.util.regex.Pattern.compile("[a-z]").matcher(password).find()) {
             throw new IllegalArgumentException("Password must contain at least one lowercase letter (a-z).");
         }
-        if (!password.matches(".*[0-9].*")) {
-            throw new IllegalArgumentException("Password must contain at least one number (0-9).");
+        if (!java.util.regex.Pattern.compile("[0-9]").matcher(password).find()) {
+            throw new IllegalArgumentException("Password must contain at least one digit (0-9).");
         }
-        if (!password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) {
+        if (!java.util.regex.Pattern.compile("[^A-Za-z0-9\\s]").matcher(password).find()) {
             throw new IllegalArgumentException("Password must contain at least one special character (e.g. @, !, #, $).");
-        }
-        if (username != null && password.toLowerCase().contains(username.toLowerCase())) {
-            throw new IllegalArgumentException("Password must not contain your username.");
         }
     }
 
@@ -867,23 +879,37 @@ public class BackofficeSecurityService {
             if (opt.isEmpty() && rec.getEmail() != null) {
                 opt = userJpaRepository.findByEmail(rec.getEmail());
             }
+            UserEntity entity;
             if (opt.isPresent()) {
-                UserEntity entity = opt.get();
-                entity.setFullName(rec.getFullName());
-                entity.setEmail(rec.getEmail());
-                entity.setUserType(rec.getUserType());
-                entity.setAuditType(rec.getAuditType());
-                entity.setAssignedLevel(rec.getAssignedLevel() != null ? rec.getAssignedLevel() : "TAX_CENTER");
-                entity.setAssignedLocation(rec.getAssignedLocation());
-                entity.setStatus(rec.getStatus());
-                entity.setPasswordHash(rec.getPasswordHash());
-                entity.setMustChangePassword(rec.isMustChangePassword());
-                entity.setFailedLoginCount(rec.getFailedLoginCount());
-                entity.setLockedUntil(rec.getLockedUntil());
-                entity.setLastLoginAt(rec.getLastLoginAt());
-                entity.setPasswordChangedAt(rec.getPasswordChangedAt());
-                userJpaRepository.save(entity);
+                entity = opt.get();
+            } else {
+                UUID uid;
+                try {
+                    uid = UUID.fromString(rec.getUserId());
+                } catch (Exception ex) {
+                    uid = UUID.nameUUIDFromBytes(("itas-user:" + rec.getUsername()).getBytes(StandardCharsets.UTF_8));
+                }
+                entity = UserEntity.builder()
+                        .userId(uid)
+                        .username(rec.getUsername())
+                        .createdAt(rec.getCreatedAt() != null ? rec.getCreatedAt() : OffsetDateTime.now())
+                        .updatedAt(OffsetDateTime.now())
+                        .build();
             }
+            entity.setFullName(rec.getFullName() != null ? rec.getFullName() : rec.getUsername());
+            entity.setEmail(rec.getEmail() != null ? rec.getEmail() : (rec.getUsername() + "@mor.gov.et"));
+            entity.setUserType(rec.getUserType() != null ? rec.getUserType() : "AUDITOR");
+            entity.setAuditType(rec.getAuditType());
+            entity.setAssignedLevel(rec.getAssignedLevel() != null ? rec.getAssignedLevel() : "TAX_CENTER");
+            entity.setAssignedLocation(rec.getAssignedLocation());
+            entity.setStatus(rec.getStatus() != null ? rec.getStatus() : "ACTIVE");
+            entity.setPasswordHash(rec.getPasswordHash());
+            entity.setMustChangePassword(rec.isMustChangePassword());
+            entity.setFailedLoginCount(rec.getFailedLoginCount());
+            entity.setLockedUntil(rec.getLockedUntil());
+            entity.setLastLoginAt(rec.getLastLoginAt());
+            entity.setPasswordChangedAt(rec.getPasswordChangedAt());
+            userJpaRepository.save(entity);
         } catch (Exception e) {
             log.debug("Non-fatal DB sync for user [{}]: {}", rec.getUsername(), e.getMessage());
         }

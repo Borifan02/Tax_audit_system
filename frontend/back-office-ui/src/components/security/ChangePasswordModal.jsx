@@ -14,20 +14,27 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
   const [successMsg, setSuccessMsg] = useState('');
 
   const checks = useMemo(() => {
-    const pwd = newPassword || '';
-    const uname = (user?.username || '').toLowerCase();
+    const pwd = newPassword ? newPassword.trim() : '';
+    const conf = confirmPassword ? confirmPassword.trim() : '';
     return {
       minLength: pwd.length >= 8,
       hasUpper: /[A-Z]/.test(pwd),
       hasLower: /[a-z]/.test(pwd),
       hasNumber: /[0-9]/.test(pwd),
-      hasSpecial: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd),
-      notUsername: !uname || !pwd.toLowerCase().includes(uname),
-      matchesConfirm: pwd.length > 0 && pwd === confirmPassword,
+      hasSpecial: /[^A-Za-z0-9\s]/.test(pwd),
+      matchesConfirm: pwd.length > 0 && pwd === conf,
     };
-  }, [newPassword, confirmPassword, user?.username]);
+  }, [newPassword, confirmPassword]);
 
-  const allValid = checks.minLength && checks.hasUpper && checks.hasLower && checks.hasNumber && checks.hasSpecial && checks.notUsername && checks.matchesConfirm && currentPassword.length > 0;
+  const characterPolicyValid =
+    checks.minLength &&
+    checks.hasUpper &&
+    checks.hasLower &&
+    checks.hasNumber &&
+    checks.hasSpecial &&
+    checks.matchesConfirm;
+
+  const allValid = characterPolicyValid && (isForced || currentPassword.trim().length > 0);
 
   if (!isOpen) return null;
 
@@ -36,22 +43,50 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
     setError('');
     setSuccessMsg('');
 
-    if (!allValid) {
-      setError('Please satisfy all MOR password security requirements before saving.');
+    const trimmedNew = newPassword.trim();
+    const trimmedConfirm = confirmPassword.trim();
+    const trimmedCurrent = currentPassword.trim();
+
+    if (!isForced && !trimmedCurrent) {
+      setError('Please enter your current password.');
+      return;
+    }
+    if (!checks.minLength) {
+      setError('New password must be at least 8 characters long.');
+      return;
+    }
+    if (!checks.hasUpper) {
+      setError('New password must include at least one uppercase letter (A–Z).');
+      return;
+    }
+    if (!checks.hasLower) {
+      setError('New password must include at least one lowercase letter (a–z).');
+      return;
+    }
+    if (!checks.hasNumber) {
+      setError('New password must include at least one digit (0–9).');
+      return;
+    }
+    if (!checks.hasSpecial) {
+      setError('New password must include at least one special character (e.g. @, !, #, $, %, _).');
+      return;
+    }
+    if (trimmedNew !== trimmedConfirm) {
+      setError('New password and confirmation password do not match.');
       return;
     }
 
     setSubmitting(true);
     try {
-      await changePassword(currentPassword, newPassword);
-      setSuccessMsg('Your password has been encrypted with BCrypt and updated successfully.');
+      await changePassword(isForced ? trimmedCurrent : trimmedCurrent, trimmedNew);
+      setSuccessMsg('Your new password has been encrypted with BCrypt and saved. Use this password on future logins.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => {
         setSuccessMsg('');
         if (onClose) onClose();
-      }, 1200);
+      }, 900);
     } catch (err) {
       setError(err.message || 'Failed to update password.');
     } finally {
@@ -78,7 +113,7 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
               </h2>
               <p className="text-xs text-white/80 mt-0.5">
                 {isForced
-                  ? 'Your account uses a temporary password. Set a private password to continue.'
+                  ? `Welcome, ${user?.name || user?.username}. Set your personal password to continue.`
                   : `MOR Cryptographic Credential Security • ${user?.username || user?.email}`}
               </p>
             </div>
@@ -101,7 +136,7 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
               <div>
                 <p className="font-bold">First-Login / Administrator Reset Security Policy</p>
                 <p className="mt-0.5">
-                  For your security and audit accountability, temporary passwords issued by the System Administrator must be replaced before accessing MOR audit workspaces.
+                  You signed in with a temporary password issued by the System Administrator. Please write your new personal password below — it will replace the temporary password for all future logins.
                 </p>
               </div>
             </div>
@@ -121,30 +156,32 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
             </div>
           )}
 
-          {/* Current Password */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Current / Temporary Password
-            </label>
-            <div className="relative">
-              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type={showCurrent ? 'text' : 'password'}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password (e.g. Mor@2026!)"
-                required
-                className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrent(!showCurrent)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
+          {/* Current Password (only required for voluntary self-service password change) */}
+          {!isForced && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Current Password
+              </label>
+              <div className="relative">
+                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type={showCurrent ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                  required
+                  className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* New Password */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -158,8 +195,9 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
                   type={showNew ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="New strong password"
+                  placeholder="Write new strong password"
                   required
+                  autoFocus
                   className="w-full pl-10 pr-9 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 />
                 <button
@@ -192,17 +230,24 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
 
           {/* Live Complexity Policy Checklist */}
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
-              <Shield size={13} className="text-blue-600" />
-              MOR Back-Office Password Policy
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Shield size={13} className="text-blue-600" />
+                MOR Back-Office Password Character Check
+              </p>
+              {characterPolicyValid && (
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  ✓ All Character Checks Valid
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
               {[
                 { ok: checks.minLength, label: 'At least 8 characters' },
                 { ok: checks.hasUpper, label: 'Uppercase letter (A–Z)' },
                 { ok: checks.hasLower, label: 'Lowercase letter (a–z)' },
                 { ok: checks.hasNumber, label: 'At least one digit (0–9)' },
-                { ok: checks.hasSpecial, label: 'Special symbol (@, !, #, $)' },
+                { ok: checks.hasSpecial, label: 'Special symbol (@, !, #, $, _)' },
                 { ok: checks.matchesConfirm, label: 'Confirmation matches' },
               ].map((item, idx) => (
                 <div
@@ -240,10 +285,14 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
 
             <button
               type="submit"
-              disabled={!allValid || submitting}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-600/20 transition cursor-pointer"
+              disabled={submitting}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition cursor-pointer ${
+                allValid
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+              } disabled:opacity-50`}
             >
-              {submitting ? 'Encrypting & Updating...' : 'Update Password Securely'}
+              {submitting ? 'Encrypting & Saving...' : 'Update Password Securely'}
             </button>
           </div>
         </form>
@@ -251,3 +300,4 @@ export default function ChangePasswordModal({ isOpen, onClose, isForced = false 
     </div>
   );
 }
+

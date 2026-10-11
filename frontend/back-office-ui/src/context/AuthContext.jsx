@@ -148,18 +148,37 @@ export const AuthProvider = ({ children }) => {
 
           if (saved && (saved.id || saved.email || saved.username)) {
             const targetId = (saved.id || saved.email || saved.username).toLowerCase();
-            const matched = merged.find(u =>
+            let matched = merged.find(u =>
               (u.id && u.id.toLowerCase() === targetId) ||
               (u.username && u.username.toLowerCase() === targetId) ||
               (u.email && u.email.toLowerCase() === targetId)
             );
+            // Query authoritative security record from /api/v1/backoffice/auth/me
+            try {
+              const meRes = await fetch('/api/v1/backoffice/auth/me', {
+                headers: {
+                  ...(saved.token ? { Authorization: `Bearer ${saved.token}` } : {}),
+                  'X-Actor-Id': saved.id || saved.username || targetId
+                }
+              });
+              if (meRes.ok) {
+                const meData = await meRes.json();
+                if (meData?.user) {
+                  matched = mapBackendUserToProfile(meData.user);
+                }
+              }
+            } catch (_) {
+              // ignore network error during /me sync
+            }
             if (matched && isMounted) {
+              const latestMustChange = Boolean(matched.mustChangePassword);
               setUser(matched);
+              setMustChangePassword(latestMustChange);
               storage.set('session', {
                 id: matched.id,
                 role: matched.role,
                 token: saved.token || sessionStorage.getItem('mor_jwt_token'),
-                mustChangePassword: Boolean(saved.mustChangePassword || matched.mustChangePassword),
+                mustChangePassword: latestMustChange,
                 user: matched
               });
               sessionStorage.setItem('userId', matched.id);
@@ -344,13 +363,21 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.message || 'Failed to update password.');
     }
 
+    const freshToken = data.token || token;
+    if (freshToken) {
+      setToken(freshToken);
+      sessionStorage.setItem('mor_jwt_token', freshToken);
+    }
+
     setMustChangePassword(false);
-    const updatedUser = { ...user, mustChangePassword: false, customPasswordSet: true };
+    const updatedUser = data.user
+      ? { ...mapBackendUserToProfile(data.user), mustChangePassword: false, customPasswordSet: true }
+      : { ...user, mustChangePassword: false, customPasswordSet: true };
     setUser(updatedUser);
     storage.set('session', {
       id: updatedUser.id,
       role: updatedUser.role,
-      token,
+      token: freshToken,
       mustChangePassword: false,
       user: updatedUser
     });
