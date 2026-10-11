@@ -197,7 +197,8 @@ export const teamLeaderAPI = {
       };
       throw new Error(codeMessages[error.error] || error.message || 'Failed to assign case to auditor');
     }
-    return response.json();
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
   },
 
   /**

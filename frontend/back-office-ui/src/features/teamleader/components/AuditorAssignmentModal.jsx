@@ -106,8 +106,18 @@ export default function AuditorAssignmentModal({ open, onClose, caseData, allCas
         fromNomination: false,
       }));
     }
-    return [];
-  }, [teamAuditors, currentUser.id]);
+    const tlTaxCenter = currentUser.taxCenter;
+    const tlAuditType = currentUser.auditType;
+    return SEED_USERS.filter(u => u.role === 'auditor' && (!tlTaxCenter || u.taxCenter === tlTaxCenter) && (!tlAuditType || u.auditType === tlAuditType)).map(a => ({
+        id: a.id,
+        name: a.name,
+        email: a.email,
+        expertise: a.auditType || 'General Audit',
+        seniority: 'Senior',
+        taxCenter: a.taxCenter,
+        fromNomination: false
+    }));
+  }, [teamAuditors, currentUser]);
 
   // Calculate workload for each auditor (active cases assigned to them)
   const auditorWorkloads = useMemo(() => {

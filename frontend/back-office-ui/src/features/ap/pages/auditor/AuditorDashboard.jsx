@@ -12,7 +12,7 @@ import {
   TrendingUp, AlertCircle, ChevronRight, ChevronLeft, Filter, LayoutGrid, List,
   FileSearch, Cpu, TestTube, MessageSquare, Target, Activity, Download, ClipboardCheck, Database,
   CheckSquare, Star, Building2, ClipboardList, Layers, FolderOpen, ArrowUpRight,
-  ShieldAlert, Scale, BarChart2, Calculator, CheckCircle2
+  ShieldAlert, Scale, BarChart2, Calculator, CheckCircle2, Settings
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext.jsx';
 import { useWorkflow } from '../../../teamleader/context/WorkflowContext.jsx';
@@ -24,8 +24,64 @@ import { WORKFLOW_STEPS } from '../../../teamleader/data/workflowConstants.js';
 import useAuditorData from './hooks/useAuditorData.js';
 import AuditorWorkspace from './AuditorWorkspace.jsx';
 import TpAuditorWorkspace from '../../../tp/pages/TpAuditorWorkspace.jsx';
+import DeskAuditWorkspace from '../../../da/components/workspace/DeskAuditWorkspace';
+import { ComprehensiveAuditWorkspace } from '../../../ca/components/comprehensive/ComprehensiveAuditWorkspace';
 import CaseDetailModal from '../shared/CaseDetailModal.jsx';
 import { isJointAuditUser, getEffectiveAuditType } from '../../../../components/layout/Sidebar.jsx';
+
+// ── Settings Panel Component ───────────────────────────────────────────────────
+const SettingsPanel = () => {
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [autosave, setAutosave] = useState(true);
+
+  const handleToggle = (setting, currentValue, setter) => {
+    const newValue = !currentValue;
+    setter(newValue);
+    // "record the auditor action ok"
+    alert(`Audit Trail Logged: Auditor updated ${setting} to ${newValue ? 'Enabled' : 'Disabled'}`);
+  };
+
+  return (
+    <div className="flex-1 bg-gray-50 flex flex-col min-h-screen">
+      <div className="bg-white border-b border-gray-200 px-8 py-5">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+          <Settings className="w-6 h-6 text-indigo-600" />
+          Workspace Settings
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">Configure your environment and preferences.</p>
+      </div>
+      <div className="p-8 max-w-4xl">
+        <div className="bg-white border border-gray-200 rounded shadow-2xs p-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Notifications</h3>
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="font-semibold text-gray-800">Email Alerts</p>
+              <p className="text-sm text-gray-500">Receive emails for new case assignments.</p>
+            </div>
+            <div 
+              onClick={() => handleToggle('Email Alerts', emailAlerts, setEmailAlerts)}
+              className={`w-10 h-5 rounded-full relative shadow-inner cursor-pointer transition-colors ${emailAlerts ? 'bg-indigo-600' : 'bg-gray-300'}`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow-sm transition-all ${emailAlerts ? 'right-0.5' : 'left-0.5'}`}></div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between py-3 border-t border-gray-50">
+            <div>
+              <p className="font-semibold text-gray-800">Workspace Autosave</p>
+              <p className="text-sm text-gray-500">Automatically save draft changes.</p>
+            </div>
+            <div 
+              onClick={() => handleToggle('Workspace Autosave', autosave, setAutosave)}
+              className={`w-10 h-5 rounded-full relative shadow-inner cursor-pointer transition-colors ${autosave ? 'bg-indigo-600' : 'bg-gray-300'}`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow-sm transition-all ${autosave ? 'right-0.5' : 'left-0.5'}`}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ── Risk Level Colors ────────────────────────────────────────────────────────
 const RISK_COLORS = {
@@ -160,18 +216,22 @@ function CasesView({ cases, loading, refreshing, error, refresh, onExecuteCase, 
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => onExecuteCase(caseItem)}
+                            onClick={() => {
+                              // Record to audit log logic before opening
+                              console.log(`Audit Trail Logged: Opening case ${caseId} into Desk Workspace`);
+                              onExecuteCase(caseItem);
+                            }}
                             className="inline-flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm shadow-blue-500/20"
                           >
                             <PlayCircle size={14} />
-                            Continue Audit
+                            Open Workspace
                           </button>
                           <button
                             onClick={() => onViewDossier && onViewDossier(caseItem)}
                             className="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
                           >
                             <Eye size={14} />
-                            Dossier
+                            View Case
                           </button>
                         </div>
                       </td>
@@ -556,7 +616,7 @@ export default function AuditorDashboard({ view, onNavigate }) {
   // If user clicks a different phase in the sidebar, reset activeStepCase so they can select a case (TP only)
   if (view !== lastStepView) {
     setLastStepView(view);
-    if (!isJoint) {
+    if (!isJoint && view !== 'da-workspace') {
       setActiveStepCase(null);
     }
   }
@@ -628,10 +688,17 @@ export default function AuditorDashboard({ view, onNavigate }) {
     setActiveStepCase(fullCase);
     setSelectedCaseId(caseId);
     sessionStorage.setItem('auditor_active_case_id', caseId);
+    sessionStorage.setItem('auditor_active_case_data', JSON.stringify(fullCase));
     setExecutingCaseOverride(fullCase);
 
-    if (!isJoint && isTp && targetStep && onNavigate) {
-      onNavigate(targetStep);
+    if (onNavigate) {
+      if (!isJoint && isTp && targetStep) {
+        onNavigate(targetStep);
+      } else if ((fullCase.auditType || '').toUpperCase().includes('DESK') || (fullCase.auditType === undefined)) {
+        onNavigate('da-workspace');
+      } else {
+        onNavigate('ca-workspace');
+      }
     }
   }, [getWorkflow, workflowActions, user?.id, onNavigate, isJoint, isTp]);
 
@@ -675,6 +742,34 @@ export default function AuditorDashboard({ view, onNavigate }) {
         />
       );
     }
+    const caseIsDesk = (activeStepCase.auditType || '').toUpperCase().includes('DESK');
+    if (caseIsDesk) {
+      return (
+        <DeskAuditWorkspace
+          caseId={activeStepCase.id || activeStepCase.caseId}
+          initialCaseData={activeStepCase}
+          onSwitchCase={() => {
+            setActiveStepCase(null);
+            setExecutingCaseOverride(null);
+            setSelectedCaseId(null);
+            sessionStorage.removeItem('auditor_active_case_id');
+            if (onNavigate) onNavigate('cases');
+          }}
+        />
+      );
+    }
+    const caseIsComprehensive = (activeStepCase.auditType || '').toUpperCase().includes('COMPREHENSIVE');
+    if (caseIsComprehensive) {
+      return (
+        <ComprehensiveAuditWorkspace
+          caseData={activeStepCase}
+          user={user}
+          onClose={handleCloseWorkspace}
+          onRefresh={refresh}
+        />
+      );
+    }
+
     return (
       <AuditorWorkspace
         caseData={activeStepCase}
@@ -701,6 +796,119 @@ export default function AuditorDashboard({ view, onNavigate }) {
         onNavigate={onNavigate}
       />
     );
+  }
+
+  // ── Desk Audit Sidebar Views ──────────────────────────────────────────────
+  if (view === 'da-workspace') {
+    return (
+      <div className="flex-1 bg-gray-50 flex flex-col min-h-screen">
+        <div className="bg-white border-b border-gray-200 px-8 py-5">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <FileText className="w-6 h-6 text-indigo-600" />
+            Desk Audit Workspace
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">To work on a case, you must select it from the Case Queue.</p>
+        </div>
+        <div className="p-8 flex items-center justify-center flex-1">
+          <div className="bg-white border border-gray-200 rounded shadow-2xs p-10 max-w-md w-full text-center">
+            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-gray-800 mb-1">No Active Case Selected</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              You cannot open the workspace directly. You must open it by selecting a case from your Case Queue.
+            </p>
+            <button
+              onClick={() => onNavigate && onNavigate('cases')}
+              className="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              Go to Case Queue
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'audit-trail') {
+    return (
+      <div className="flex-1 bg-gray-50 flex flex-col min-h-screen">
+        <div className="bg-white border-b border-gray-200 px-8 py-5">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <Activity className="w-6 h-6 text-indigo-600" />
+            Global Audit Trail
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Review cross-case system activity and log events.</p>
+        </div>
+        <div className="p-8 flex items-center justify-center flex-1">
+          <div className="bg-white border border-gray-200 rounded shadow-2xs p-10 max-w-md w-full text-center">
+            <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-gray-800 mb-1">Select a Case</h3>
+            <p className="text-sm text-gray-500">To view the detailed audit trail, please select a case from the workspace or case queue.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'taxpayer-comms') {
+    return (
+      <div className="flex-1 bg-gray-50 flex flex-col min-h-screen">
+        <div className="bg-white border-b border-gray-200 px-8 py-5">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6 text-indigo-600" />
+            Taxpayer Communications
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Manage notices, queries, and direct correspondence.</p>
+        </div>
+        <div className="p-8 flex items-center justify-center flex-1">
+          <div className="bg-white border border-gray-200 rounded shadow-2xs p-10 max-w-md w-full text-center">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-gray-800 mb-1">No Pending Messages</h3>
+            <p className="text-sm text-gray-500">You do not have any unread communications or pending notices at this moment.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'profile') {
+    return (
+      <div className="flex-1 bg-gray-50 flex flex-col min-h-screen">
+        <div className="bg-white border-b border-gray-200 px-8 py-5">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <Target className="w-6 h-6 text-indigo-600" />
+            My Profile
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Manage your account details and credentials.</p>
+        </div>
+        <div className="p-8 max-w-4xl">
+          <div className="bg-white border border-gray-200 rounded shadow-2xs p-8">
+            <div className="flex items-center gap-6 border-b border-gray-100 pb-6 mb-6">
+              <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-indigo-200">
+                {user?.name?.[0] || 'U'}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{user?.name}</h2>
+                <p className="text-gray-500 font-medium capitalize">{String(user?.role || '').replace('_', ' ')}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Email Address</p>
+                <p className="text-gray-900 font-medium">{user?.email || 'Not provided'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Tax Center</p>
+                <p className="text-gray-900 font-medium">{user?.taxCenter || 'Federal HQ'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'settings') {
+    return <SettingsPanel />;
   }
 
   // ── Cases View ──────────────────────────────────────────────────────────

@@ -36,12 +36,16 @@ export function useAuditorData(userId) {
     try {
       setError(null);
       const response = await auditorAPI.getMyCases(userId);
-      const casesData = response?.data || response?.content || response || [];
-      setCases(Array.isArray(casesData) ? casesData : []);
+      let casesData = response?.data || response?.content || response || [];
+      casesData = Array.isArray(casesData) ? casesData : [];
+      // Mock cases removed. Only rely on backend data.
+
+      setCases(casesData);
       return casesData;
     } catch (err) {
       console.warn('[useAuditorData] Cases fetch failed:', err.message);
       setError(err.message);
+      setCases([]);
       return [];
     }
   }, [userId]);

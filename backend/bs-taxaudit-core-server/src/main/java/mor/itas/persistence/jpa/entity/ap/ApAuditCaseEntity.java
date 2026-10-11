@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import mor.itas.persistence.jpa.entity.tp.*;
+import mor.itas.persistence.jpa.entity.da.*;
+import mor.itas.persistence.jpa.entity.ca.*;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -195,6 +197,98 @@ public class ApAuditCaseEntity {
     /** Current workflow phase for TP cases (e.g. DETAILED_RISK_ASSESSMENT, PLANNING, FIELD_WORK…) */
     @Column(name = "tp_current_phase", length = 64)
     private String tpCurrentPhase;
+
+    // ── DA-Specific Child Entities ──
+    @JsonIgnore
+    @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<DaEvidenceEntity> daEvidences = new java.util.ArrayList<>();
+
+    @JsonIgnore
+    @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<DaAuditProcedureEntity> daAuditProcedures = new java.util.ArrayList<>();
+
+    @JsonIgnore
+    @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<DaDraftReportEntity> daDraftReports = new java.util.ArrayList<>();
+
+    @Column(name = "da_current_phase", length = 64)
+    private String daCurrentPhase;
+
+    @Column(name = "ca_current_phase", length = 64)
+    private String caCurrentPhase;
+
+    /** Overall CA workflow status (FR-04.4 state machine) */
+    @Column(name = "ca_workflow_status", length = 64)
+    private String caWorkflowStatus;
+
+    // ── CA-specific display/query fields (V36) ────────────────────────────────
+    /** TIN — convenience alias for taxpayerId; back-filled by V36 migration */
+    @Column(name = "tin", length = 32)
+    private String tin;
+
+    /** Tax center display name — convenience alias for taxCenterCode */
+    @Column(name = "tax_center", length = 128)
+    private String taxCenter;
+
+    /** HIGH | MEDIUM | LOW — derived from riskScore by V36, kept in sync */
+    @Column(name = "risk_category", length = 16)
+    private String riskCategory;
+
+    /** LTO | MTO | STO — mirrors segment field, kept in sync */
+    @Column(name = "taxpayer_segment", length = 16)
+    private String taxpayerSegment;
+
+    /** Audit start date for display (ISO date string from plan) */
+    @Column(name = "start_date")
+    private java.time.LocalDate startDate;
+
+    /** Statutory audit completion due date */
+    @Column(name = "due_date")
+    private java.time.LocalDate dueDate;
+
+    /** Multi-tax scope description (VAT, CIT, PAYE, WHT) */
+    @Column(name = "audit_scope", columnDefinition = "TEXT")
+    private String auditScope;
+
+    // ── CA Child Entities ──────────────────────────────────────────────────────
+    @JsonIgnore @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<CaCaatEligibilityEntity> caCaatEligibilities = new java.util.ArrayList<>();
+
+    @JsonIgnore @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<CaCaatRunEntity> caCaatRuns = new java.util.ArrayList<>();
+
+    @JsonIgnore @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<CaEntryConferenceEntity> caEntryConferences = new java.util.ArrayList<>();
+
+    @JsonIgnore @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<CaAuditFindingEntity> caAuditFindings = new java.util.ArrayList<>();
+
+    @JsonIgnore @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<CaReconciliationEntity> caReconciliations = new java.util.ArrayList<>();
+
+    @JsonIgnore @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<CaDraftReportEntity> caDraftReports = new java.util.ArrayList<>();
+
+    @JsonIgnore @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<CaExitConferenceEntity> caExitConferences = new java.util.ArrayList<>();
+
+    @JsonIgnore @Builder.Default
+    @OneToMany(mappedBy = "auditCase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<CaAssessmentNoticeEntity> caAssessmentNotices = new java.util.ArrayList<>();
+
+    @Column(name = "qa_current_phase", length = 64)
+    private String qaCurrentPhase;
+
 
     // ── Constructors ──────────────────────────────────────────────────────────
     public ApAuditCaseEntity() {
@@ -390,4 +484,56 @@ public class ApAuditCaseEntity {
 
     public String getTpCurrentPhase() { return tpCurrentPhase; }
     public void setTpCurrentPhase(String tpCurrentPhase) { this.tpCurrentPhase = tpCurrentPhase; }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public java.util.List<DaEvidenceEntity> getDaEvidences() { return daEvidences; }
+    public void setDaEvidences(java.util.List<DaEvidenceEntity> daEvidences) { this.daEvidences = daEvidences; }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public java.util.List<DaAuditProcedureEntity> getDaAuditProcedures() { return daAuditProcedures; }
+    public void setDaAuditProcedures(java.util.List<DaAuditProcedureEntity> daAuditProcedures) { this.daAuditProcedures = daAuditProcedures; }
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public java.util.List<DaDraftReportEntity> getDaDraftReports() { return daDraftReports; }
+    public void setDaDraftReports(java.util.List<DaDraftReportEntity> daDraftReports) { this.daDraftReports = daDraftReports; }
+
+    public String getDaCurrentPhase() { return daCurrentPhase; }
+    public void setDaCurrentPhase(String daCurrentPhase) { this.daCurrentPhase = daCurrentPhase; }
+
+    public String getCaCurrentPhase() { return caCurrentPhase; }
+    public void setCaCurrentPhase(String caCurrentPhase) { this.caCurrentPhase = caCurrentPhase; }
+
+    public String getCaWorkflowStatus() { return caWorkflowStatus; }
+    public void setCaWorkflowStatus(String caWorkflowStatus) { this.caWorkflowStatus = caWorkflowStatus; }
+
+    // ── V36 CA display fields ─────────────────────────────────────────────────
+    public String getTin() { return tin; }
+    public void setTin(String tin) { this.tin = tin; }
+
+    public String getTaxCenter() { return taxCenter; }
+    public void setTaxCenter(String taxCenter) { this.taxCenter = taxCenter; }
+
+    public String getRiskCategory() { return riskCategory; }
+    public void setRiskCategory(String riskCategory) { this.riskCategory = riskCategory; }
+
+    public String getTaxpayerSegment() { return taxpayerSegment; }
+    public void setTaxpayerSegment(String taxpayerSegment) { this.taxpayerSegment = taxpayerSegment; }
+
+    public java.time.LocalDate getStartDate() { return startDate; }
+    public void setStartDate(java.time.LocalDate startDate) { this.startDate = startDate; }
+
+    public java.time.LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(java.time.LocalDate dueDate) { this.dueDate = dueDate; }
+
+    public String getAuditScope() { return auditScope; }
+    public void setAuditScope(String auditScope) { this.auditScope = auditScope; }
+
+    public String getSegment() { return segment; }
+    public void setSegment(String segment) { this.segment = segment; }
+
+    public String getRiskPriority() { return riskPriority; }
+    public void setRiskPriority(String riskPriority) { this.riskPriority = riskPriority; }
+
+    public String getQaCurrentPhase() { return qaCurrentPhase; }
+    public void setQaCurrentPhase(String qaCurrentPhase) { this.qaCurrentPhase = qaCurrentPhase; }
 }

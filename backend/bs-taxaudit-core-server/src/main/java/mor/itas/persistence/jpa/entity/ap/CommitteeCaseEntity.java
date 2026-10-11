@@ -72,6 +72,27 @@ public class CommitteeCaseEntity {
     @Builder.Default
     private Integer extensionCount = 0;
 
+    @Column(length = 50)
+    private String decision;
+
+    @Column(name = "chairperson_id")
+    private UUID chairpersonId;
+
+    @Column(name = "team_lead_id")
+    private UUID teamLeadId;
+
+    @Column(name = "current_owner_id")
+    private UUID currentOwnerId;
+
+    // Explicit getters for the failing methods
+    public UUID getOriginalCaseId() { return this.originalCaseId; }
+    public String getStatus() { return this.status; }
+    public String getDecision() { return this.decision; }
+    public UUID getChairpersonId() { return this.chairpersonId; }
+    public UUID getTeamLeadId() { return this.teamLeadId; }
+    public UUID getCurrentOwnerId() { return this.currentOwnerId; }
+
+
     // ── Extended case details ──────────────────────────────────────
 
     @Column(columnDefinition = "TEXT")
@@ -109,26 +130,7 @@ public class CommitteeCaseEntity {
 
     // ── Ownership ──────────────────────────────────────────────────
 
-    @Column(name = "current_owner_id")
-    private UUID currentOwnerId;
-
-    @Column(name = "ownership_acquired_at")
-    private OffsetDateTime ownershipAcquiredAt;
-
-    @Column(length = 50)
-    private String decision;
-
-    @Column(name = "decision_date")
-    private OffsetDateTime decisionDate;
-
-    @Column(name = "decision_reason", columnDefinition = "TEXT")
-    private String decisionReason;
-
-    @Column(name = "chairperson_id")
-    private UUID chairpersonId;
-
-    @Column(name = "team_lead_id")
-    private UUID teamLeadId;
+    // Removed duplicates
 
     @Column(name = "team_id")
     private UUID teamId;

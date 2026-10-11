@@ -43,28 +43,14 @@ public class GenericResponse<T> {
     
     // Helper methods
     public static <T> GenericResponse<T> success(T data) {
-        return GenericResponse.<T>builder()
-            .data(data)
-            .status("SUCCESS")
-            .build();
+        return new GenericResponse<>(data, null, null, "SUCCESS", null, null);
     }
     
     public static <T> GenericResponse<T> success(T data, Integer count, Long total) {
-        return GenericResponse.<T>builder()
-            .data(data)
-            .count(count)
-            .total(total)
-            .status("SUCCESS")
-            .build();
+        return new GenericResponse<>(data, count, total, "SUCCESS", null, null);
     }
     
     public static <T> GenericResponse<T> error(String code, String message) {
-        return GenericResponse.<T>builder()
-            .status("ERROR")
-            .error(ErrorDetail.builder()
-                .code(code)
-                .message(message)
-                .build())
-            .build();
+        return new GenericResponse<>(null, null, null, "ERROR", null, new ErrorDetail(code, message, null));
     }
 }

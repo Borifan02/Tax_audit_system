@@ -43,6 +43,20 @@ public class CommitteeCaseAggregate {
     // Ownership
     private UUID currentOwnerId;
     private OffsetDateTime ownershipAcquiredAt;
+    
+    private UUID handoffRecordId;
+    private OffsetDateTime handoffDate;
+
+    // Explicit getters/setters for failing methods
+    public String getStatus() { return this.status != null ? this.status.name() : null; }
+    public UUID getTeamLeadId() { return this.teamLeadId; }
+    public UUID getChairpersonId() { return this.chairpersonId; }
+    public void setHandoffRecordId(UUID id) { this.handoffRecordId = id; }
+    public void setHandoffDate(OffsetDateTime date) { this.handoffDate = date; }
+    public UUID getCaseId() { return this.caseId; }
+    public OffsetDateTime getExtendedDeadline() { return this.extendedDeadline; }
+    public OffsetDateTime getCommitteeDeadline() { return this.committeeDeadline; }
+
 
     // Decision
     private CommitteeCaseDecision decision;
@@ -50,9 +64,7 @@ public class CommitteeCaseAggregate {
     private String decisionReason;
     private UUID chairpersonId;
 
-    // Handoff
-    private UUID handoffRecordId;
-    private OffsetDateTime handoffDate;
+    // Removed duplicates
 
     // Events
     @Builder.Default

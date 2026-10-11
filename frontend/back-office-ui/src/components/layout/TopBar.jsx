@@ -5,53 +5,7 @@ import { useTheme } from '../../context/ThemeContext.jsx';
 import TaskInboxModal from '../workflow/TaskInboxModal.jsx';
 import NotificationPopover from '../notifications/NotificationPopover.jsx';
 
-const QUICK_SWITCH_USERS = [
-  // Federal LTO-1 Joint Audit Roster
-  // Federal LTO-1 Joint Audit Roster
-  { username: 'committeechair-federal-lto1-ja', name: 'Dr. Solomon Desta', role: 'Joint Committee Chair', auditType: 'JOINT_AUDIT', location: 'Federal LTO-1', category: 'Joint Audit' },
-  { username: 'committeemember-federal-lto1-ja', name: 'Eleni Tesfaye', role: 'Joint Committee Member', auditType: 'JOINT_AUDIT', location: 'Federal LTO-1', category: 'Joint Audit' },
-  { username: 'teamleader-federal-lto1-ja-1', name: 'Abebe Haile', role: 'Joint Audit Team Leader', auditType: 'JOINT_AUDIT', location: 'Federal LTO-1', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto1-ja-1', name: 'Fikremariam Tilahun', role: 'Joint Auditor (Customs)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-1', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto1-ja-2', name: 'Saron Assefa', role: 'Joint Auditor (Cross-Border)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-1', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto1-ja-3', name: 'Bikila Worku', role: 'Joint Auditor (VAT/Sales)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-1', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto1-ja-4', name: 'Michael Zewde', role: 'Joint Auditor (CIT/Deductions)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-1', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto1-ja-5', name: 'Saron Negash', role: 'Joint Auditor (Forensics)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-1', category: 'Joint Audit' },
-
-  // Federal LTO-2 Joint Audit Roster
-  { username: 'committeechair-federal-lto2-ja', name: 'Dr. Worku Alemayehu', role: 'Joint Committee Chair', auditType: 'JOINT_AUDIT', location: 'Federal LTO-2', category: 'Joint Audit' },
-  { username: 'committeemember-federal-lto2-ja', name: 'Tigist Hailu', role: 'Joint Committee Member', auditType: 'JOINT_AUDIT', location: 'Federal LTO-2', category: 'Joint Audit' },
-  { username: 'teamleader-federal-lto2-ja-1', name: 'Berhanu Bekele', role: 'Joint Audit Team Leader', auditType: 'JOINT_AUDIT', location: 'Federal LTO-2', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto2-ja-1', name: 'Dawit Mengistu', role: 'Joint Auditor (Customs)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-2', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto2-ja-2', name: 'Eden Tadesse', role: 'Joint Auditor (Cross-Border)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-2', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto2-ja-3', name: 'Henok Girma', role: 'Joint Auditor (VAT/Sales)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-2', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto2-ja-4', name: 'Meron Kebede', role: 'Joint Auditor (CIT/Deductions)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-2', category: 'Joint Audit' },
-  { username: 'auditor-federal-lto2-ja-5', name: 'Natnael Assefa', role: 'Joint Auditor (Forensics)', auditType: 'JOINT_AUDIT', location: 'Federal LTO-2', category: 'Joint Audit' },
-
-  // Transfer Pricing Roster
-  { username: 'committeechair-federal-lto1-tp', name: 'Fikadu Belay', role: 'TP Committee Chair', auditType: 'TRANSFER_PRICING', location: 'Federal Level', category: 'Transfer Pricing' },
-  { username: 'teamleader-addis_ababa-tc1-tp-1', name: 'Robel Girma', role: 'TP Team Leader', auditType: 'TRANSFER_PRICING', location: 'Addis Ababa TC-1', category: 'Transfer Pricing' },
-  { username: 'auditor-addis_ababa-tc1-tp-1-1', name: 'Michael Abera', role: 'TP Auditor', auditType: 'TRANSFER_PRICING', location: 'Addis Ababa TC-1', category: 'Transfer Pricing' },
-
-  // Addis Ababa Joint Audit
-  { username: 'committeechair-aa1', name: 'Dr. Abebe Kebede', role: 'Joint Committee Chair', auditType: 'JOINT_AUDIT', location: 'Addis Ababa TC-1', category: 'Joint Audit' },
-  { username: 'teamleader-aa1-1', name: 'Dawit Tadesse', role: 'Joint Audit Team Leader', auditType: 'JOINT_AUDIT', location: 'Addis Ababa TC-1', category: 'Joint Audit' },
-  { username: 'auditor-aa1-1', name: 'Sara Mohammed', role: 'Joint Auditor (Customs)', auditType: 'JOINT_AUDIT', location: 'Addis Ababa TC-1', category: 'Joint Audit' },
-
-  // Regional Joint Audit Chairs
-  { username: 'committeechair-or1', name: 'Dr. Chaltu Negash', role: 'Joint Committee Chair', auditType: 'JOINT_AUDIT', location: 'Oromia TC-1', category: 'Joint Audit' },
-  { username: 'committeechair-ba1', name: 'Dr. Tadesse Kebede', role: 'Joint Committee Chair', auditType: 'JOINT_AUDIT', location: 'Amhara TC-1', category: 'Joint Audit' },
-  { username: 'committeechair-dd1', name: 'Dr. Yonas Mengistu', role: 'Joint Committee Chair', auditType: 'JOINT_AUDIT', location: 'Dire Dawa TC-1', category: 'Joint Audit' },
-  { username: 'committeechair-sn1', name: 'Dr. Tekle Lemma', role: 'Joint Committee Chair', auditType: 'JOINT_AUDIT', location: 'SNNPR TC-1', category: 'Joint Audit' },
-  { username: 'committeechair-so1', name: 'Dr. Ibrahim Hassan', role: 'Joint Committee Chair', auditType: 'JOINT_AUDIT', location: 'Somali TC-1', category: 'Joint Audit' },
-
-  // Standard Audits & Management
-  { username: 'taxcentermanager-federal-lto1', name: 'Tsega Mulugeta', role: 'Tax Center Manager', auditType: 'MANAGEMENT', location: 'Federal LTO-1', category: 'Leadership' },
-  { username: 'taxcentermanager-federal-lto2', name: 'Berihun Tesfaye', role: 'Tax Center Manager', auditType: 'MANAGEMENT', location: 'Federal LTO-2', category: 'Leadership' },
-  { username: 'planning-01', name: 'Eden Haile', role: 'National Planning Lead', auditType: 'PLANNING', location: 'Federal Level', category: 'Leadership' },
-  { username: 'director-01', name: 'Getnet Bekele', role: 'National Audit Director', auditType: 'DIRECTORATE', location: 'Federal Level', category: 'Leadership' },
-  { username: 'seniormanagement-01', name: 'Almaz Berhane', role: 'Senior Management Exec', auditType: 'EXECUTIVE', location: 'Federal Level', category: 'Leadership' },
-
-];
+const QUICK_SWITCH_USERS = [];
 
 export default function TopBar({ title, subtitle, onNavigate }) {
   const { user, login, logout } = useAuth();
@@ -64,9 +18,6 @@ export default function TopBar({ title, subtitle, onNavigate }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [switcherTab, setSwitcherTab] = useState('ALL');
-  const [switcherSearch, setSwitcherSearch] = useState('');
-  const [switching, setSwitching] = useState(false);
   const calendarRef = useRef(null);
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -181,34 +132,6 @@ export default function TopBar({ title, subtitle, onNavigate }) {
 
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
-
-  const filteredQuickUsers = useMemo(() => {
-    return QUICK_SWITCH_USERS.filter(u => {
-      if (switcherTab !== 'ALL' && u.category !== switcherTab) return false;
-      if (switcherSearch.trim()) {
-        const q = switcherSearch.toLowerCase().trim();
-        const mName = u.name.toLowerCase().includes(q);
-        const mRole = u.role.toLowerCase().includes(q);
-        const mUser = u.username.toLowerCase().includes(q);
-        const mLoc = (u.location || '').toLowerCase().includes(q);
-        if (!mName && !mRole && !mUser && !mLoc) return false;
-      }
-      return true;
-    });
-  }, [switcherTab, switcherSearch]);
-
-  const handleSwitchUser = async (targetUsername) => {
-    if (switching) return;
-    setSwitching(true);
-    try {
-      await login(targetUsername, 'password123');
-      setShowUserMenu(false);
-    } catch (e) {
-      console.error('Failed to switch user:', e);
-    } finally {
-      setSwitching(false);
-    }
-  };
 
   return (
     <>
@@ -426,96 +349,6 @@ export default function TopBar({ title, subtitle, onNavigate }) {
                       </span>
                     )}
                   </div>
-                </div>
-
-                {/* Quick Persona Switcher Section */}
-                <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Users size={13} className="text-blue-500" />
-                      <span>Switch System Persona</span>
-                    </p>
-                    <span className="text-[10px] text-slate-400 font-medium">Instant Dynamic Role Switch</span>
-                  </div>
-
-                  {/* Filter Pills */}
-                  <div className="flex gap-1 mb-2 overflow-x-auto pb-1">
-                    {['ALL', 'Joint Audit', 'Transfer Pricing', 'Leadership'].map(tabKey => (
-                      <button
-                        key={tabKey}
-                        type="button"
-                        onClick={() => setSwitcherTab(tabKey)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
-                          switcherTab === tabKey
-                            ? 'bg-blue-600 text-white shadow-xs'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-                        }`}
-                      >
-                        {tabKey}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Search input */}
-                  <div className="relative">
-                    <Search size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Search name, role, username..."
-                      value={switcherSearch}
-                      onChange={e => setSwitcherSearch(e.target.value)}
-                      className="w-full pl-7 pr-3 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Persona List */}
-                <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60 p-1">
-                  {filteredQuickUsers.map(persona => {
-                    const isCurrent = user?.username === persona.username;
-                    return (
-                      <button
-                        key={persona.username}
-                        type="button"
-                        disabled={isCurrent || switching}
-                        onClick={() => handleSwitchUser(persona.username)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition group cursor-pointer ${
-                          isCurrent
-                            ? 'bg-blue-50/70 dark:bg-blue-950/30 cursor-default'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                            isCurrent
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 group-hover:text-blue-600'
-                          }`}>
-                            {persona.name.split(' ').map(n => n[0]).slice(0,2).join('')}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5">
-                              <span>{persona.name}</span>
-                              {isCurrent && <Check size={12} className="text-blue-600 dark:text-blue-400 stroke-[3]" />}
-                            </p>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                              <span className="font-semibold text-blue-600 dark:text-blue-400">{persona.role}</span>
-                              {persona.location && ` • ${persona.location}`}
-                            </p>
-                          </div>
-                        </div>
-
-                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0 ml-2">
-                          {persona.username}
-                        </span>
-                      </button>
-                    );
-                  })}
-                  {filteredQuickUsers.length === 0 && (
-                    <div className="p-4 text-center text-xs text-slate-400">
-                      No matching personas found.
-                    </div>
-                  )}
                 </div>
 
                 {/* Footer / Sign Out */}

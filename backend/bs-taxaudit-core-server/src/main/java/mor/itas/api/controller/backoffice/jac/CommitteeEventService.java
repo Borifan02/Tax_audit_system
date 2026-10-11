@@ -29,6 +29,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 @Slf4j
 public class CommitteeEventService {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CommitteeEventService.class);
 
     private static final long SSE_TIMEOUT = 30 * 60 * 1000L; // 30 minutes
 

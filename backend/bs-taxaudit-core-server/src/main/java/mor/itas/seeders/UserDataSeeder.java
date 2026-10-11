@@ -460,6 +460,41 @@ public class UserDataSeeder implements CommandLineRunner {
                             un + "@mor.gov.et", "+251-911-" + String.format("%02d00%02d", num, a), tcId);
             }
         }
+        // ════════════════════════════════════════════════════════════════════════════
+        // 3. DESK AUDIT PERSONNEL (Federal LTO1 & LTO2)
+        // ════════════════════════════════════════════════════════════════════════════
+        
+        // Federal LTO-1 Desk Audit Team Leaders
+        seedUser("10000002-0000-0000-0001-000000000001", "u-tl-federal-lto1-desk-1", "u-tl-federal-lto1-desk-1@mor.gov.et", "Getnet Tesfa", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "federal-lto1");
+        seedUser("10000002-0000-0000-0001-000000000002", "u-tl-federal-lto1-desk-2", "u-tl-federal-lto1-desk-2@mor.gov.et", "Gemechu Alemu", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "federal-lto1");
+        
+        // Federal LTO-2 Desk Audit Team Leaders
+        seedUser("10000002-0000-0000-0002-000000000001", "u-tl-federal-lto2-desk-1", "u-tl-federal-lto2-desk-1@mor.gov.et", "Dawit Getachew", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "federal-lto2");
+        seedUser("10000002-0000-0000-0002-000000000002", "u-tl-federal-lto2-desk-2", "u-tl-federal-lto2-desk-2@mor.gov.et", "Haile Mideksa", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "federal-lto2");
+        
+        // Federal LTO-1 Auditors (Team 1)
+        seedUser("a0000002-0000-0000-0001-000000000001", "u-aud-federal-lto1-desk-1-1", "u-aud-federal-lto1-desk-1-1@mor.gov.et", "Tsega Mamo", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto1");
+        seedAuditor("a0000002-0000-0000-0001-000000000001", "Tsega", "Mamo", "General", "MID_LEVEL", 5, "u-aud-federal-lto1-desk-1-1@mor.gov.et", "+251-911-000001", "federal-lto1");
+        seedUser("a0000002-0000-0000-0001-000000000002", "u-aud-federal-lto1-desk-1-2", "u-aud-federal-lto1-desk-1-2@mor.gov.et", "Abebe Kassa", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto1");
+        seedAuditor("a0000002-0000-0000-0001-000000000002", "Abebe", "Kassa", "General", "MID_LEVEL", 5, "u-aud-federal-lto1-desk-1-2@mor.gov.et", "+251-911-000002", "federal-lto1");
+        
+        // Federal LTO-1 Auditors (Team 2)
+        seedUser("a0000002-0000-0000-0001-000000000003", "u-aud-federal-lto1-desk-2-1", "u-aud-federal-lto1-desk-2-1@mor.gov.et", "Abebe Lemma", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto1");
+        seedAuditor("a0000002-0000-0000-0001-000000000003", "Abebe", "Lemma", "General", "MID_LEVEL", 5, "u-aud-federal-lto1-desk-2-1@mor.gov.et", "+251-911-000003", "federal-lto1");
+        seedUser("a0000002-0000-0000-0001-000000000004", "u-aud-federal-lto1-desk-2-2", "u-aud-federal-lto1-desk-2-2@mor.gov.et", "Almaw Gebre", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto1");
+        seedAuditor("a0000002-0000-0000-0001-000000000004", "Almaw", "Gebre", "General", "MID_LEVEL", 5, "u-aud-federal-lto1-desk-2-2@mor.gov.et", "+251-911-000004", "federal-lto1");
+        
+        // Federal LTO-2 Auditors (Team 1)
+        seedUser("a0000002-0000-0000-0002-000000000001", "u-aud-federal-lto2-desk-1-1", "u-aud-federal-lto2-desk-1-1@mor.gov.et", "Birtukan Kassa", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto2");
+        seedAuditor("a0000002-0000-0000-0002-000000000001", "Birtukan", "Kassa", "General", "MID_LEVEL", 5, "u-aud-federal-lto2-desk-1-1@mor.gov.et", "+251-911-000005", "federal-lto2");
+        seedUser("a0000002-0000-0000-0002-000000000002", "u-aud-federal-lto2-desk-1-2", "u-aud-federal-lto2-desk-1-2@mor.gov.et", "Genet Worku", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto2");
+        seedAuditor("a0000002-0000-0000-0002-000000000002", "Genet", "Worku", "General", "MID_LEVEL", 5, "u-aud-federal-lto2-desk-1-2@mor.gov.et", "+251-911-000006", "federal-lto2");
+        
+        // Federal LTO-2 Auditors (Team 2)
+        seedUser("a0000002-0000-0000-0002-000000000003", "u-aud-federal-lto2-desk-2-1", "u-aud-federal-lto2-desk-2-1@mor.gov.et", "Genet Gebre", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto2");
+        seedAuditor("a0000002-0000-0000-0002-000000000003", "Genet", "Gebre", "General", "MID_LEVEL", 5, "u-aud-federal-lto2-desk-2-1@mor.gov.et", "+251-911-000007", "federal-lto2");
+        seedUser("a0000002-0000-0000-0002-000000000004", "u-aud-federal-lto2-desk-2-2", "u-aud-federal-lto2-desk-2-2@mor.gov.et", "Henok Abera", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto2");
+        seedAuditor("a0000002-0000-0000-0002-000000000004", "Henok", "Abera", "General", "MID_LEVEL", 5, "u-aud-federal-lto2-desk-2-2@mor.gov.et", "+251-911-000008", "federal-lto2");
 
         log.info("[UserDataSeeder] ✓ Seeded {} total users into t_user and {} auditors into t_auditor",
                  userJpaRepo.count(), auditorRepo.count());

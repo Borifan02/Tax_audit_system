@@ -19,6 +19,7 @@ import RiskAnalysisDashboard from './features/ap/pages/planning/RiskAnalysisDash
 import RiskEngineDashboard from './features/ap/pages/riskengine/RiskEngineDashboard.jsx';
 import AuditRequesterDashboard from './features/ap/pages/requester/AuditRequesterDashboard.jsx';
 import TaxpayerPortalDashboard from './features/portal/pages/TaxpayerPortalDashboard.jsx';
+import { QAWorkspaceManager } from './features/qa/pages/QAWorkspaceManager';
 import {
   CommitteeDashboard as JaCommitteeDashboard,
   CommitteeCases as JaCommitteeCases,
@@ -38,6 +39,8 @@ import JaAuditorWorkspace from './features/ja/pages/AuditorWorkspace.jsx';
 import { isJointAuditUser } from './components/layout/Sidebar.jsx';
 import AuditTrail from './features/committee/pages/AuditTrail.jsx';
 import { Spinner } from './components/ui/index.jsx';
+import DeskAuditWorkspace from './features/da/components/workspace/DeskAuditWorkspace';
+import { ComprehensiveAuditWorkspace } from './features/ca/components/comprehensive/ComprehensiveAuditWorkspace';
 
 const TP_PHASE_TITLES = {
   'phase-1':          { title: '1. Risk Assessment & Evidence',         subtitle: 'Detailed TP risk scoring, BEPS indicators, and baseline evidence' },
@@ -137,6 +140,8 @@ const PAGE_TITLES = {
   auditor: {
     dashboard:   { title: 'Auditor Dashboard',      subtitle: 'Your active audit cases' },
     cases:       { title: 'My Cases',               subtitle: 'Cases assigned to you' },
+    'da-workspace': { title: 'Desk Audit Workspace', subtitle: 'Execute desk audit procedures and evidence' },
+    'ca-workspace': { title: 'Comprehensive Audit Workspace', subtitle: 'Execute comprehensive audit procedures and multi-tax examination' },
     audit_trail: { title: 'Governance Audit Trail', subtitle: 'Immutable compliance & statutory governance audit log' },
     'audit-trail': { title: 'Governance Audit Trail', subtitle: 'Immutable compliance & statutory governance audit log' },
     ...ALL_AUDIT_PHASE_TITLES,
@@ -248,6 +253,11 @@ function RoleRouter({ user, view, onNavigate }) {
     if (view === 'cases') return <CaseManagement onNavigate={onNavigate} />;
     return <TaxCenterDashboard view={view} onNavigate={onNavigate} />;
   }
+  
+  if (role === 'qa_officer' || role === 'qa_team_leader' || role === 'qa_director' || role === 'QA_OFFICER' || role === 'QA_TEAM_LEADER' || role === 'QA_DIRECTOR') {
+    return <QAWorkspaceManager />;
+  }
+
   if (role === 'team_leader') {
     // Single shared heuristic — must agree with the sidebar's nav selection.
     if (isJointAuditUser(user)) {
@@ -266,6 +276,22 @@ function RoleRouter({ user, view, onNavigate }) {
     return <TeamLeaderDashboard view={view} onNavigate={onNavigate} />;
   }
   if (role === 'auditor') {
+    if (view === 'da-workspace') {
+      const activeCaseId = sessionStorage.getItem('auditor_active_case_id') || user?.assignedCaseId || user?.caseId || null;
+      let initialCaseInfo = null;
+      try {
+        initialCaseInfo = JSON.parse(sessionStorage.getItem('auditor_active_case_data'));
+      } catch(e) {}
+      return <DeskAuditWorkspace caseId={activeCaseId} initialCaseInfo={initialCaseInfo} />;
+    }
+    if (view === 'ca-workspace') {
+      const activeCaseId = sessionStorage.getItem('auditor_active_case_id') || user?.assignedCaseId || user?.caseId || null;
+      let initialCaseInfo = null;
+      try {
+        initialCaseInfo = JSON.parse(sessionStorage.getItem('auditor_active_case_data'));
+      } catch(e) {}
+      return <ComprehensiveAuditWorkspace caseData={{ id: activeCaseId, ...initialCaseInfo }} onClose={() => onNavigate('dashboard')} />;
+    }
     const activeView = (isJointAuditUser(user) && view && view.startsWith('phase-')) ? 'dashboard' : view;
     return (
       <WorkflowProvider>

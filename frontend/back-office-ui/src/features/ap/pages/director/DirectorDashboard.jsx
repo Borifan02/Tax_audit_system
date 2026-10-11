@@ -10,6 +10,7 @@ import { Card, StatCard, Button, Modal, Textarea, Alert, Table, Empty, Tabs, Bad
 import PlanStatusBadge from '../shared/PlanStatusBadge.jsx';
 import PlanDetailModal from '../planning/PlanDetailModal.jsx';
 import { DistributionTable } from '../shared/DistributionTable.jsx';
+import { DirectorWorkspace } from '../../../ca/components/comprehensive/DirectorWorkspace';
 
 const PLAN_STATUS_ORDER = [
   'SUBMITTED_TO_DIRECTOR',
@@ -314,6 +315,7 @@ export default function DirectorDashboard({ view }) {
   const meta = ACTION_META[actionType] || {};
 
   const tabs = [
+    { id: 'ca_execution', label: 'CA Execution Reviews', count: 1 },
     { id: 'pending', label: 'Pending Review', count: pending.length + amendedResubmissions.length },
     { id: 'feedback', label: 'Regional Feedback', count: feedbackCollected.length },
     { id: 'submitted_to_senior', label: 'At Senior Mgmt', count: submittedToSenior.length },
@@ -422,6 +424,9 @@ export default function DirectorDashboard({ view }) {
             </div>
 
             <div className="p-4 pt-0">
+              {tab === 'ca_execution' && (
+                <DirectorWorkspace currentUser={user} />
+              )}
               {tab === 'pending' && (
                 pending.length === 0 && amendedResubmissions.length === 0
                   ? <Empty icon={CheckCircle} title="No pending plans" description="All submitted plans have been reviewed." />

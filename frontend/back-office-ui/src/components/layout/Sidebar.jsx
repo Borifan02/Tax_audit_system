@@ -68,21 +68,23 @@ const TEAM_LEADER_NAV = {
   DESK_AUDIT: [
     {
       title: 'OVERVIEW',
-      items: [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }]
-    },
-    {
-      title: 'DESK AUDIT OPERATIONS',
       items: [
-        { id: 'cases', label: 'Assigned Cases', icon: Users }
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'cases', label: 'Team Case Queue', icon: Users }
       ]
     },
     {
-      title: 'SUPERVISORY REVIEWS & GATES',
+      title: 'WORKSPACE & TOOLS',
       items: [
-        { id: 'desk-phase-1', label: 'Return & Ratio Analysis Review', icon: CheckSquare },
-        { id: 'desk-phase-2', label: 'Inquiry & Document Review', icon: Building2 },
-        { id: 'desk-phase-3', label: 'Adjustment Determination', icon: Activity },
-        { id: 'desk-phase-4', label: 'Desk Assessment Sign-Off', icon: Star }
+        { id: 'tl-da-workspace', label: 'Desk Audit Review Workspace', icon: FileCheck },
+        { id: 'audit-trail', label: 'Audit Trail Log', icon: Activity }
+      ]
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        { id: 'profile', label: 'My Profile', icon: Target },
+        { id: 'settings', label: 'Workspace Settings', icon: Settings }
       ]
     }
   ],
@@ -156,6 +158,13 @@ const AUDITOR_NAV = {
       ]
     },
     {
+      title: 'WORKSPACE & TOOLS',
+      items: [
+        { id: 'ca-workspace', label: 'Comprehensive Audit Workspace', icon: FileText },
+        { id: 'audit-trail', label: 'Audit Trail Log', icon: Activity }
+      ]
+    },
+    {
       title: 'COMPREHENSIVE AUDIT EXECUTION',
       items: [
         { id: 'comp-aud-1', label: 'Audit Scope & Books Examination', icon: CheckSquare },
@@ -168,20 +177,24 @@ const AUDITOR_NAV = {
   DESK_AUDIT: [
     {
       title: 'OVERVIEW',
-      items: [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }]
-    },
-    {
-      title: 'AUDIT OPERATIONS',
       items: [
-        { id: 'cases', label: 'My Cases', icon: Search }
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'cases', label: 'Case Queue', icon: Search }
       ]
     },
     {
-      title: 'DESK AUDIT EXECUTION',
+      title: 'WORKSPACE & TOOLS',
       items: [
-        { id: 'desk-aud-1', label: 'Return & Financial Ratio Review', icon: CheckSquare },
-        { id: 'desk-aud-2', label: 'Inquiry & Document Verification', icon: Building2 },
-        { id: 'desk-aud-3', label: 'Summary & Adjustment Proposal', icon: FileText }
+        { id: 'da-workspace', label: 'Desk Audit Workspace', icon: FileText },
+        { id: 'audit-trail', label: 'Audit Trail Log', icon: Activity },
+        { id: 'taxpayer-comms', label: 'Taxpayer Communications', icon: Users }
+      ]
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        { id: 'profile', label: 'My Profile', icon: Target },
+        { id: 'settings', label: 'Workspace Settings', icon: Settings }
       ]
     }
   ],

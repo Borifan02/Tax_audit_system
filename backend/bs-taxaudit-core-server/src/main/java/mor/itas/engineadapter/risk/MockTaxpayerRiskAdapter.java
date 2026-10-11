@@ -400,4 +400,15 @@ public class MockTaxpayerRiskAdapter {
         
         return stats;
     }
+
+    public void updateRiskProfile(String tin, String reason, String actorId, String date) {
+        Map<String, Object> profile = RISK_PROFILES.get(tin);
+        if (profile != null) {
+            profile.put("overallRiskLevel", "HIGH");
+            profile.put("auditPriority", "CRITICAL");
+            profile.put("lastRiskUpdateReason", reason);
+            profile.put("lastRiskUpdateActor", actorId);
+            profile.put("lastRiskUpdateDate", date);
+        }
+    }
 }

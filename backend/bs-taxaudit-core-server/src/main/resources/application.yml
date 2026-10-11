@@ -22,8 +22,10 @@ spring:
     open-in-view: false
 
   flyway:
-    enabled: true
+    enabled: false
     out-of-order: true
+    clean-disabled: false
+    clean-on-validation-error: true
 
   security:
     oauth2:

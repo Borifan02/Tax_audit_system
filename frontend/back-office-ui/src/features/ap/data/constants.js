@@ -182,6 +182,7 @@ export const normalizeBackendStatus = (backendStatus) => {
     case 'ASSIGNED_TO_TEAM_LEADER': return 'ASSIGNED';
     case 'ASSIGNED_TO_COMMITTEE':   return 'ASSIGNED';
     case 'IN_PROGRESS':             return 'IN_PROGRESS';
+    case 'APPROVED':                return 'COMPLETED';
     case 'COMPLETED':               return 'COMPLETED';
     case 'CLOSED':                  return 'COMPLETED';
     case 'RISK_ASSESSMENT_SUBMITTED_TL': return 'RISK_ASSESSMENT_SUBMITTED_TL';
