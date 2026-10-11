@@ -144,7 +144,7 @@ public class DeskAuditController {
                     .anyMatch(a -> a.getAuthority().equals("ROLE_TEAM_LEADER") || a.getAuthority().equals("ROLE_AUDIT_DIRECTOR"));
             
             // For testing/mocking without full JWT, fallback to checking actorId
-            if (!hasRole && actorId != null && !actorId.contains("-tl-")) {
+            if (!hasRole && actorId != null && !actorId.contains("-tl-") && !actorId.toLowerCase().contains("teamleader") && !actorId.toLowerCase().contains("team_leader")) {
                 return ResponseEntity.status(403).body("Access Denied: Only Team Leaders can review audits.");
             }
         }
@@ -152,7 +152,7 @@ public class DeskAuditController {
         if ("SUBMIT_FOR_REVIEW".equals(action)) {
             String teamLeaderId = apAuditCaseRepository.findById(caseId)
                 .map(mor.itas.persistence.jpa.entity.ap.ApAuditCaseEntity::getAssignedTeamLeaderId)
-                .orElse("u-tl-addis_ababa-tc1-desk-1");
+                .orElse("teamleader-addis_ababa-tc1-desk-1");
             notificationService.sendNotification(
                     teamLeaderId,
                     "REVIEW_REQUEST",
@@ -172,7 +172,7 @@ public class DeskAuditController {
             } else if ("APPROVE_AUDIT".equals(action)) {
                 c.setStatus("APPROVED");
             } else if ("RETURN_FOR_CORRECTION".equals(action)) {
-                c.setStatus("IN_PROGRESS");
+                c.setStatus("RETURNED_FOR_CORRECTION");
             }
             apAuditCaseRepository.save(c);
         });

@@ -183,24 +183,6 @@ export default function TeamLeaderDashboard({ view }) {
             planYear: 2026
           });
         }
-        
-        const hasDa = fetched.some(c => (c.auditType || '').toUpperCase().includes('DESK'));
-        if (!hasDa) {
-          fetched.push({
-            id: "DA-2026-001",
-            caseNumber: "DA-2026-001-CASE",
-            auditType: "DESK_AUDIT",
-            tin: "TIN-123456789",
-            taxpayerName: "Acme Corp",
-            taxCenter: "TC01",
-            status: "SUBMITTED",
-            frontendStatus: "Pending TL Review",
-            assignedAuditor: "u-aud-federal-lto1-desk-1-1",
-            assignedTeamLeaderId: user.id || user.username,
-            riskScore: 85,
-            planYear: 2026
-          });
-        }
       }
       setCases(fetched);
       setLoading(false); 
@@ -238,6 +220,8 @@ export default function TeamLeaderDashboard({ view }) {
       const tlUsername = user.username || user.id || '';
       const tlAuditorPrefix = tlUsername.startsWith('u-tl-')
         ? tlUsername.replace(/^u-tl-/, 'u-aud-') + '-'
+        : tlUsername.startsWith('teamleader-')
+        ? tlUsername.replace(/^teamleader-/, 'auditor-') + '-'
         : null;
 
       if (tlAuditorPrefix) {
@@ -247,37 +231,11 @@ export default function TeamLeaderDashboard({ view }) {
         }
       }
 
-      if (mapped.length === 0 && user?.role?.toUpperCase().includes('TEAM_LEADER')) {
-        mapped = [
-          {
-            id: 'u-aud-federal-lto1-comp-1-1',
-            userId: 'u-aud-federal-lto1-comp-1-1',
-            rawUserId: 'u-aud-federal-lto1-comp-1-1',
-            username: 'u-aud-federal-lto1-comp-1-1',
-            name: 'Comprehensive Auditor',
-            email: 'u-aud-federal-lto1-comp-1-1@mor.gov.et',
-            role: 'auditor',
-            auditType: 'COMPREHENSIVE_AUDIT',
-            taxCenter: 'TC-AA-01'
-          }
-        ];
-      }
       setAuditors(mapped);
     } catch (e) { 
       console.error('fetchAuditors', e);
-      setAuditors([
-        {
-          id: 'u-aud-federal-lto1-comp-1-1',
-          userId: 'u-aud-federal-lto1-comp-1-1',
-          rawUserId: 'u-aud-federal-lto1-comp-1-1',
-          username: 'u-aud-federal-lto1-comp-1-1',
-          name: 'Comprehensive Auditor',
-          email: 'u-aud-federal-lto1-comp-1-1@mor.gov.et',
-          role: 'auditor',
-          auditType: 'COMPREHENSIVE_AUDIT',
-          taxCenter: 'TC-AA-01'
-        }
-      ]);
+      setAuditors([]);
+    }
     }
   }, [user?.id, user?.username, user?.taxCenter, user?.auditType, isCommitteeUser]);
 

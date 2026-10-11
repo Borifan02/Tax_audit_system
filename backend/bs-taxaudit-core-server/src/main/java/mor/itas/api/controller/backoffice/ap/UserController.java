@@ -92,6 +92,14 @@ public class UserController {
                         if (!scoped.isEmpty()) {
                             users = scoped;
                         }
+                    } else if (tlUsername != null && tlUsername.startsWith("teamleader-")) {
+                        String expectedAuditorPrefix = tlUsername.replaceFirst("^teamleader-", "auditor-") + "-";
+                        List<User> scoped = users.stream()
+                            .filter(u -> u.getUsername() != null && u.getUsername().startsWith(expectedAuditorPrefix))
+                            .collect(Collectors.toList());
+                        if (!scoped.isEmpty()) {
+                            users = scoped;
+                        }
                     }
                 } else {
                     users = userManagementUseCase.getAuditors(

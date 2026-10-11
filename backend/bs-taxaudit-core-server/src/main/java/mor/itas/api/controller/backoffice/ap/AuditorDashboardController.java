@@ -61,7 +61,12 @@ public class AuditorDashboardController {
         // Build case summaries for active cases
         List<ApAuditCaseEntity> activeCases = allCases.stream()
                 .filter(c -> "IN_PROGRESS".equals(c.getStatus()) || "ASSIGNED".equals(c.getStatus()))
-                .sorted(Comparator.comparing(ApAuditCaseEntity::getCreatedAt).reversed())
+                .sorted((a, b) -> {
+                    if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
+                    if (a.getCreatedAt() == null) return 1;
+                    if (b.getCreatedAt() == null) return -1;
+                    return b.getCreatedAt().compareTo(a.getCreatedAt());
+                })
                 .collect(Collectors.toList());
 
         List<AuditorDashboardResponse.AuditorCaseSummary> activeSummaries = activeCases.stream()
@@ -71,7 +76,12 @@ public class AuditorDashboardController {
         // Build case summaries for recent completed
         List<ApAuditCaseEntity> completedCases = allCases.stream()
                 .filter(c -> "COMPLETED".equals(c.getStatus()) || "CONCLUDED".equals(c.getStatus()))
-                .sorted(Comparator.comparing(ApAuditCaseEntity::getCompletedAt).reversed())
+                .sorted((a, b) -> {
+                    if (a.getCompletedAt() == null && b.getCompletedAt() == null) return 0;
+                    if (a.getCompletedAt() == null) return 1;
+                    if (b.getCompletedAt() == null) return -1;
+                    return b.getCompletedAt().compareTo(a.getCompletedAt());
+                })
                 .limit(5)
                 .collect(Collectors.toList());
 

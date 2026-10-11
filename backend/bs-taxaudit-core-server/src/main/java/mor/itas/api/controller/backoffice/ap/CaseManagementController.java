@@ -486,7 +486,7 @@ public class CaseManagementController {
 
             // Enforce Strict Tax Center Isolation: Verify case's Tax Center matches Team Leader's Tax Center
             String caseTc = entity.getTaxCenterCode();
-            if (caseTc != null && targetTLId != null && targetTLId.startsWith("u-tl-")) {
+            if (caseTc != null && targetTLId != null && (targetTLId.startsWith("u-tl-") || targetTLId.startsWith("teamleader-"))) {
                 List<String> caseTcVariants = getTaxCenterVariants(caseTc);
                 boolean match = false;
                 for (String variant : caseTcVariants) {
@@ -651,7 +651,7 @@ public class CaseManagementController {
 
                     // Enforce Strict Tax Center Isolation: Verify case's Tax Center matches Team Leader's Tax Center
                     String caseTc = entity.getTaxCenterCode();
-                    if (caseTc != null && targetTLId != null && targetTLId.startsWith("u-tl-")) {
+                    if (caseTc != null && targetTLId != null && (targetTLId.startsWith("u-tl-") || targetTLId.startsWith("teamleader-"))) {
                         List<String> caseTcVariants = getTaxCenterVariants(caseTc);
                         boolean match = false;
                         for (String variant : caseTcVariants) {
@@ -755,11 +755,13 @@ public class CaseManagementController {
                         continue;
                     }
 
-                    // Allow assignment if in ASSIGNED_TO_TEAM_LEADER, ASSIGNED_TO_COMMITTEE, PLANNING_TRIGGERED, or IN_PROGRESS state
+                    // Allow assignment if in ASSIGNED_TO_TEAM_LEADER, ASSIGNED_TO_COMMITTEE, PLANNING_TRIGGERED, ASSIGNED, or IN_PROGRESS state
                     if (!ApAuditCaseEntity.STATUS_ASSIGNED_TO_TEAM_LEADER.equals(entity.getStatus())
                             && !ApAuditCaseEntity.STATUS_ASSIGNED_TO_COMMITTEE.equals(entity.getStatus())
                             && !ApAuditCaseEntity.STATUS_PLANNING_TRIGGERED.equals(entity.getStatus())
-                            && !ApAuditCaseEntity.STATUS_IN_PROGRESS.equals(entity.getStatus())) {
+                            && !ApAuditCaseEntity.STATUS_IN_PROGRESS.equals(entity.getStatus())
+                            && !"ASSIGNED".equals(entity.getStatus())
+                            && !"AUDITOR_ASSIGNED".equals(entity.getStatus())) {
                         errors.add("Case " + caseId + ": invalid status " + entity.getStatus());
                         continue;
                     }

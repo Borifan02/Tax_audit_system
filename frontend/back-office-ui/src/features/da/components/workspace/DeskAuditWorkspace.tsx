@@ -51,14 +51,19 @@ export const STEPS = [
 interface DeskAuditWorkspaceProps {
   caseId?: string;
   initialCaseInfo?: any;
+  initialCaseData?: any;
   onCaseChange?: (newCaseId: string) => void;
+  onSwitchCase?: () => void;
 }
 
 export const DeskAuditWorkspace: React.FC<DeskAuditWorkspaceProps> = ({
   caseId = 'DA-2026-001',
   initialCaseInfo,
-  onCaseChange
+  initialCaseData,
+  onCaseChange,
+  onSwitchCase
 }) => {
+  const effectiveCaseInfo = initialCaseInfo || initialCaseData;
   const [activeCaseId, setActiveCaseId] = useState<string>(caseId);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([0]);
@@ -92,7 +97,7 @@ export const DeskAuditWorkspace: React.FC<DeskAuditWorkspaceProps> = ({
   const loadCase = useCallback(async (id: string) => {
     setIsLoading(true);
     try {
-      const data = await itasApi.getCaseData(id, initialCaseInfo);
+      const data = await itasApi.getCaseData(id, effectiveCaseInfo);
       setCaseData(data.auditCase);
       setEvidenceList(data.evidence || []);
       setProcedures(data.procedures || []);
@@ -411,7 +416,7 @@ export const DeskAuditWorkspace: React.FC<DeskAuditWorkspaceProps> = ({
         onOpenAuditTrail={() => setIsAuditTrailOpen(true)}
         onOpenEscalation={() => setIsEscalationModalOpen(true)}
         onOpenTeamLeaderReview={() => setIsTeamLeaderModalOpen(true)}
-        onSwitchCase={() => setIsCaseSwitcherOpen(true)}
+        onSwitchCase={onSwitchCase ? onSwitchCase : () => setIsCaseSwitcherOpen(true)}
       />
 
       {/* HORIZONTAL WIZARD STEPPER */}

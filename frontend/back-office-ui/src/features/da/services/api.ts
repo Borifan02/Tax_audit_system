@@ -227,22 +227,26 @@ export const itasApi = {
       if (res.ok) {
         const rawData = await res.json();
         // The backend returns { auditCase, evidence: [], procedures: [], findings: [], workingPapers: [], queries: [], draftReport: {}, analysis: {} }
-        // We need to ensure it perfectly matches CaseFullData structure so UI doesn't crash
+        const rawCase = rawData.auditCase || {};
         const mappedData: CaseFullData = {
           auditCase: {
-            id: rawData.auditCase.id,
-            caseNumber: initialCaseInfo?.caseNumber || rawData.auditCase.caseNumber || 'Unknown',
-            taxpayerName: initialCaseInfo?.taxpayerName || rawData.auditCase.taxpayerName || 'Unknown',
-            tin: initialCaseInfo?.tin || rawData.auditCase.tin || 'Unknown',
-            auditType: rawData.auditCase.auditType || 'DESK_AUDIT',
-            riskScore: rawData.auditCase.riskScore || 0,
-            riskCategory: rawData.auditCase.riskCategory || 'LOW',
-            status: rawData.auditCase.status || 'IN_PROGRESS',
-            dueDate: rawData.auditCase.dueDate || new Date().toISOString(),
-            assignedAuditor: rawData.auditCase.assignedAuditorId || 'Unknown',
-            teamLeader: rawData.auditCase.assignedTeamLeaderId || 'Unknown',
-            taxPeriod: '2024-2025', // fallback
-            teamLeaderComment: getLocalCaseData(caseId)?.auditCase?.teamLeaderComment
+            ...rawCase,
+            id: rawCase.id,
+            caseNumber: rawCase.caseNumber || initialCaseInfo?.caseNumber || 'Unknown',
+            taxpayerName: rawCase.taxpayerName || initialCaseInfo?.taxpayerName || 'Unknown',
+            tradeName: rawCase.tradeName || rawCase.taxpayerName || initialCaseInfo?.taxpayerName || '',
+            tin: rawCase.tin || initialCaseInfo?.tin || 'Unknown',
+            auditType: rawCase.auditType || 'DESK_AUDIT',
+            riskScore: rawCase.riskScore != null ? rawCase.riskScore : 0,
+            riskCategory: rawCase.riskCategory || 'LOW',
+            status: rawCase.status || 'IN_PROGRESS',
+            startDate: rawCase.createdAt || new Date().toISOString(),
+            dueDate: rawCase.dueDate || new Date().toISOString(),
+            assignedAuditor: rawCase.assignedAuditorId || initialCaseInfo?.assignedAuditor || 'Unknown',
+            teamLeader: rawCase.assignedTeamLeaderId || initialCaseInfo?.teamLeader || 'Unknown',
+            taxPeriod: '2024-2025',
+            taxYear: 2025,
+            teamLeaderComment: rawCase.teamLeaderComment || getLocalCaseData(caseId)?.auditCase?.teamLeaderComment
           },
           evidence: rawData.evidence || [],
           procedures: rawData.procedures || [],
@@ -259,7 +263,7 @@ export const itasApi = {
           queries: rawData.queries || [],
           findings: rawData.findings || [],
           workingPapers: rawData.workingPapers || [],
-          draftReport: rawData.draftReport?.id ? rawData.draftReport : { caseId: rawData.auditCase.id, status: 'DRAFT' },
+          draftReport: rawData.draftReport?.id ? rawData.draftReport : { caseId: rawCase.id, status: 'DRAFT' },
           auditTrail: []
         };
         saveLocalCaseData(caseId, mappedData);
