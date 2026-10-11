@@ -73,6 +73,37 @@ export default function PhaseReviewBanner({
     );
   }
 
+  // If Endorsed to Committee: show purple deliberation alert
+  if (status === 'SUBMITTED_FOR_COMMITTEE') {
+    return (
+      <div className="p-5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border border-purple-300/80 dark:border-purple-700/60 rounded-2xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 flex items-center justify-center flex-shrink-0 animate-pulse">
+              <Clock size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-purple-950 dark:text-purple-200">
+                  Endorsed by Team Leader & Awaiting Review Committee Approval
+                </h4>
+                <Badge color="purple">Committee Deliberation</Badge>
+              </div>
+              <p className="text-xs text-purple-800 dark:text-purple-300 mt-0.5">
+                Dossier has been endorsed by Team Leader and submitted for formal statutory approval by the <strong>Review Committee / Process Owner</strong>.
+              </p>
+              {gate.reviewComments && (
+                <p className="text-[11px] text-purple-700 dark:text-purple-400 mt-1 italic">
+                  TL Endorsement Notes: "{gate.reviewComments}"
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // If Submitted for Review: show under review banner (supervisor controls shown ONLY for authorized non-auditor roles)
   if (status === 'SUBMITTED_FOR_REVIEW') {
     const isAuditor = user?.role === 'auditor' || !user?.role || user?.role === 'AUDITOR';

@@ -38,8 +38,8 @@ export default function PhaseGateLockScreen({ phaseId, getGate, onNavigatePhase 
               <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                 {prevConfig.label}
               </h4>
-              <Badge color={prevStatus === 'SUBMITTED_FOR_REVIEW' ? 'amber' : prevStatus === 'REVISION_REQUESTED' ? 'red' : 'slate'}>
-                {prevStatus === 'SUBMITTED_FOR_REVIEW' ? 'Under Review' : prevStatus === 'REVISION_REQUESTED' ? 'Revision Needed' : 'In Progress'}
+              <Badge color={prevStatus === 'SUBMITTED_FOR_REVIEW' ? 'amber' : prevStatus === 'SUBMITTED_FOR_COMMITTEE' ? 'purple' : prevStatus === 'REVISION_REQUESTED' ? 'red' : 'slate'}>
+                {prevStatus === 'SUBMITTED_FOR_REVIEW' ? 'Under Review' : prevStatus === 'SUBMITTED_FOR_COMMITTEE' ? 'With Committee' : prevStatus === 'REVISION_REQUESTED' ? 'Revision Needed' : 'In Progress'}
               </Badge>
             </div>
 
@@ -48,7 +48,12 @@ export default function PhaseGateLockScreen({ phaseId, getGate, onNavigatePhase 
               <div>Sub-Step Progress: <strong>{completedSubSteps.length}/6 Completed</strong></div>
               {prevStatus === 'SUBMITTED_FOR_REVIEW' && (
                 <div className="text-amber-600 font-medium pt-1">
-                  ⏳ Phase has been submitted and is currently pending formal approval by {prevConfig.authority}.
+                  ⏳ Phase has been submitted and is currently pending formal review by {prevConfig.authority}.
+                </div>
+              )}
+              {prevStatus === 'SUBMITTED_FOR_COMMITTEE' && (
+                <div className="text-purple-600 font-medium pt-1">
+                  ⏳ Phase has been endorsed by Team Leader and is currently pending Review Committee statutory approval.
                 </div>
               )}
             </div>

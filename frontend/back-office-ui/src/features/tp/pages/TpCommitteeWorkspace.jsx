@@ -22,8 +22,8 @@ const COMMITTEE_GATES = [
   { id: 'OBJECTION_FRAUD', label: '8. Response & Fraud Referral', icon: AlertOctagon }
 ];
 
-export default function TpCommitteeWorkspace({ caseData, user, onClose, onRefresh }) {
-  const [activeGate, setActiveGate] = useState('INTAKE_REVIEW');
+export default function TpCommitteeWorkspace({ caseData, user, initialGate, onClose, onRefresh }) {
+  const [activeGate, setActiveGate] = useState(initialGate || 'INTAKE_REVIEW');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -102,22 +102,28 @@ export default function TpCommitteeWorkspace({ caseData, user, onClose, onRefres
         }
 
         // Auto-navigate to appropriate active gate if newly opening
-        const currentPhase = data.caseDetails?.tpCurrentPhase;
-        const currentStatus = data.caseDetails?.status;
-        if (currentStatus === 'ASSIGNED_TO_COMMITTEE') {
-          setActiveGate('INTAKE_REVIEW');
-        } else if (currentStatus === 'SUBMITTED_FOR_COMMITTEE' || currentStatus === 'RISK_ASSESSMENT_SUBMITTED_COMMITTEE') {
-          setActiveGate('WORKING_HYPOTHESIS');
-        } else if (currentPhase === 'HYPOTHESIS_DEVELOPMENT' || currentStatus === 'TP_INTAKE_ACCEPTED') {
-          setActiveGate('WORKING_HYPOTHESIS');
-        } else if (currentPhase === 'PLANNING_MEETING') {
-          setActiveGate('PLANNING_MEETING');
-        } else if (currentStatus === 'AUDIT_PLAN_SUBMITTED_COMMITTEE' || currentStatus === 'AUDIT_PLAN_SUBMITTED_TL' || currentStatus === 'SUBMITTED_FOR_REVIEW') {
-          setActiveGate('PLAN_APPROVAL');
-        } else if (currentPhase === 'FIELD_WORK') {
-          setActiveGate('PREPARATION_REVIEW');
-        } else if (data.reports?.length > 0 && data.reports[0].status === 'SUBMITTED_FOR_APPROVAL') {
-          setActiveGate('REPORT_APPROVAL');
+        if (!initialGate) {
+          const currentPhase = data.caseDetails?.tpCurrentPhase;
+          const currentStatus = data.caseDetails?.status;
+          if (currentStatus === 'ASSIGNED_TO_COMMITTEE') {
+            setActiveGate('INTAKE_REVIEW');
+          } else if (currentStatus === 'SUBMITTED_FOR_COMMITTEE' || currentStatus === 'RISK_ASSESSMENT_SUBMITTED_COMMITTEE') {
+            setActiveGate('WORKING_HYPOTHESIS');
+          } else if (currentPhase === 'HYPOTHESIS_DEVELOPMENT' || currentStatus === 'TP_INTAKE_ACCEPTED') {
+            setActiveGate('WORKING_HYPOTHESIS');
+          } else if (currentPhase === 'PLANNING_MEETING') {
+            setActiveGate('PLANNING_MEETING');
+          } else if (currentStatus === 'AUDIT_PLAN_SUBMITTED_COMMITTEE' || currentStatus === 'AUDIT_PLAN_SUBMITTED_TL' || currentStatus === 'SUBMITTED_FOR_REVIEW') {
+            setActiveGate('PLAN_APPROVAL');
+          } else if (currentPhase === 'FIELD_WORK') {
+            setActiveGate('PREPARATION_REVIEW');
+          } else if (currentStatus === 'REPORT_SUBMITTED_COMMITTEE' || (data.reports?.length > 0 && data.reports[0].status === 'SUBMITTED_FOR_APPROVAL')) {
+            setActiveGate('REPORT_APPROVAL');
+          } else if (currentPhase === 'NOTICE' || currentStatus === 'ASSESSMENT_COMPUTED') {
+            setActiveGate('NOTICE_AUTHORIZATION');
+          } else if (currentPhase === 'CLOSURE' || currentStatus === 'NOTICE_ISSUED') {
+            setActiveGate('OBJECTION_FRAUD');
+          }
         }
       }
     } catch (err) {

@@ -21,10 +21,20 @@ const TL_GATES = [
 
 export default function TpTeamLeaderWorkspace({ caseData, user, onClose, onRefresh, initialPhase }) {
   const [activeGate, setActiveGate] = useState(() => {
+    if (initialPhase === 'FIELD_WORK') return 'FACT_STATEMENT';
+    if (initialPhase === 'ANALYSIS') return 'BENCHMARK_REVIEW';
+    if (initialPhase === 'REPORT') return 'REPORT_REVIEW';
     if (initialPhase === 'AUDIT_PLANNING') return 'PLAN_REVIEW';
     if (initialPhase === 'DETAILED_RISK_ASSESSMENT') return 'RISK_REVIEW';
+    if (caseData?.status === 'FIELD_WORK_SUBMITTED_TL') return 'FACT_STATEMENT';
+    if (caseData?.status === 'ANALYSIS_SUBMITTED_TL') return 'BENCHMARK_REVIEW';
+    if (caseData?.status === 'REPORT_SUBMITTED_FOR_TL_REVIEW' || caseData?.status === 'REPORT_SUBMITTED_COMMITTEE') return 'REPORT_REVIEW';
     if (caseData?.status === 'AUDIT_PLAN_SUBMITTED_TL' || caseData?.status === 'AUDIT_PLAN_SUBMITTED_COMMITTEE') return 'PLAN_REVIEW';
     if (caseData?.status === 'RISK_ASSESSMENT_SUBMITTED_TL') return 'RISK_REVIEW';
+    if (caseData?.tpCurrentPhase === 'FIELD_WORK') return 'FACT_STATEMENT';
+    if (caseData?.tpCurrentPhase === 'ANALYSIS') return 'BENCHMARK_REVIEW';
+    if (caseData?.tpCurrentPhase === 'REPORT') return 'REPORT_REVIEW';
+    if (caseData?.tpCurrentPhase === 'AUDIT_PLANNING') return 'PLAN_REVIEW';
     return 'RISK_REVIEW';
   });
   const [loading, setLoading] = useState(false);
@@ -77,11 +87,21 @@ export default function TpTeamLeaderWorkspace({ caseData, user, onClose, onRefre
 
         // Auto-navigate to appropriate supervisory gate based on submission state or initialPhase
         const status = data.caseDetails?.status;
+        const currentPhase = data.caseDetails?.tpCurrentPhase;
         const gates = data.phaseGates || [];
         const riskGate = gates.find(g => g.phaseId === 'DETAILED_RISK_ASSESSMENT');
         const planGate = gates.find(g => g.phaseId === 'AUDIT_PLANNING');
+        const fwGate = gates.find(g => g.phaseId === 'FIELD_WORK');
+        const analysisGate = gates.find(g => g.phaseId === 'ANALYSIS');
+        const reportGate = gates.find(g => g.phaseId === 'REPORT');
 
-        if (initialPhase === 'AUDIT_PLANNING') {
+        if (initialPhase === 'FIELD_WORK') {
+          setActiveGate('FACT_STATEMENT');
+        } else if (initialPhase === 'ANALYSIS') {
+          setActiveGate('BENCHMARK_REVIEW');
+        } else if (initialPhase === 'REPORT') {
+          setActiveGate('REPORT_REVIEW');
+        } else if (initialPhase === 'AUDIT_PLANNING') {
           setActiveGate('PLAN_REVIEW');
         } else if (initialPhase === 'DETAILED_RISK_ASSESSMENT') {
           setActiveGate('RISK_REVIEW');
@@ -89,6 +109,18 @@ export default function TpTeamLeaderWorkspace({ caseData, user, onClose, onRefre
           setActiveGate('RISK_REVIEW');
         } else if (status === 'AUDIT_PLAN_SUBMITTED_TL' || planGate?.status === 'SUBMITTED_FOR_REVIEW') {
           setActiveGate('PLAN_REVIEW');
+        } else if (status === 'FIELD_WORK_SUBMITTED_TL' || fwGate?.status === 'SUBMITTED_FOR_REVIEW') {
+          setActiveGate('FACT_STATEMENT');
+        } else if (status === 'ANALYSIS_SUBMITTED_TL' || analysisGate?.status === 'SUBMITTED_FOR_REVIEW') {
+          setActiveGate('BENCHMARK_REVIEW');
+        } else if (status === 'REPORT_SUBMITTED_FOR_TL_REVIEW' || reportGate?.status === 'SUBMITTED_FOR_REVIEW') {
+          setActiveGate('REPORT_REVIEW');
+        } else if (currentPhase === 'FIELD_WORK') {
+          setActiveGate('FACT_STATEMENT');
+        } else if (currentPhase === 'ANALYSIS') {
+          setActiveGate('BENCHMARK_REVIEW');
+        } else if (currentPhase === 'REPORT') {
+          setActiveGate('REPORT_REVIEW');
         } else if (status === 'PLANNING_TRIGGERED' || !data.caseDetails?.assignedAuditorId) {
           setActiveGate('CASE_ASSIGNMENT');
         }
@@ -222,6 +254,22 @@ export default function TpTeamLeaderWorkspace({ caseData, user, onClose, onRefre
       status: 'TL_SIGNED_OFF',
       comments: tlComments || 'Fact Statement verified against audit trail evidence. Cleared for taxpayer submission.'
     }, 'Fact Statement signed off. Auditor is authorized to share findings with taxpayer.');
+    try {
+      await fetch(`${BASE_API}/${caseId}/phases/FIELD_WORK/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Actor-Id': user?.id || user?.username || 'tp-tl',
+          'X-Actor-Role': 'TEAM_LEADER'
+        },
+        body: JSON.stringify({
+          decision: 'APPROVED',
+          comments: tlComments || 'Fact Statement signed off by Team Leader.'
+        })
+      });
+    } catch (e) {
+      console.warn('Phase gate review warning:', e);
+    }
   };
 
   // Gate 5: Benchmark Review
@@ -229,6 +277,22 @@ export default function TpTeamLeaderWorkspace({ caseData, user, onClose, onRefre
     await executeApiAction('/analysis/arms-length-confirmed', {
       comments: tlComments || 'Interquartile range and TNMM comparability study reviewed and confirmed.'
     }, 'Economic analysis and benchmark study signed off by Team Leader.');
+    try {
+      await fetch(`${BASE_API}/${caseId}/phases/ANALYSIS/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Actor-Id': user?.id || user?.username || 'tp-tl',
+          'X-Actor-Role': 'TEAM_LEADER'
+        },
+        body: JSON.stringify({
+          decision: 'APPROVED',
+          comments: tlComments || 'Benchmark and economic analysis confirmed by Team Leader.'
+        })
+      });
+    } catch (e) {
+      console.warn('Phase gate review warning:', e);
+    }
   };
 
   // Gate 6: First-Level Report Review
@@ -253,6 +317,22 @@ export default function TpTeamLeaderWorkspace({ caseData, user, onClose, onRefre
 
     if (decision === 'APPROVED') {
       await executeApiAction(`/report/${reportId}/submit-for-process-owner-review`, {}, 'Report forwarded to Process Owner.');
+      try {
+        await fetch(`${BASE_API}/${caseId}/phases/REPORT/review`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Actor-Id': user?.id || user?.username || 'tp-tl',
+            'X-Actor-Role': 'TEAM_LEADER'
+          },
+          body: JSON.stringify({
+            decision: 'ENDORSE_TO_COMMITTEE',
+            comments: tlComments || 'TP Report endorsed to Committee.'
+          })
+        });
+      } catch (e) {
+        console.warn('Phase gate review warning:', e);
+      }
     }
   };
 

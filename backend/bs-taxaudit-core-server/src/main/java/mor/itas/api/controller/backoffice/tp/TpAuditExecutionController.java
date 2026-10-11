@@ -154,6 +154,12 @@ public class TpAuditExecutionController {
             gateMap.put(g.getPhaseId(), g);
         }
 
+        ApAuditCaseEntity caseEntity = caseRepository.findById(caseId).orElse(null);
+        String currentPhase = (caseEntity != null && caseEntity.getTpCurrentPhase() != null)
+                ? caseEntity.getTpCurrentPhase() : "DETAILED_RISK_ASSESSMENT";
+        int currentPhaseIndex = phasesOrdered.indexOf(currentPhase);
+        if (currentPhaseIndex < 0) currentPhaseIndex = 0;
+
         List<Map<String, Object>> result = new ArrayList<>();
         boolean previousApproved = true; // Phase 1 is always unlocked
 
@@ -164,7 +170,7 @@ public class TpAuditExecutionController {
             item.put("phaseId", phaseId);
             item.put("phaseIndex", i + 1);
 
-            boolean isUnlocked = previousApproved;
+            boolean isUnlocked = previousApproved || (currentPhaseIndex >= i);
             item.put("isUnlocked", isUnlocked);
 
             if (entity != null) {
@@ -180,12 +186,12 @@ public class TpAuditExecutionController {
                 item.put("reviewDecision", entity.getReviewDecision());
                 item.put("reviewComments", entity.getReviewComments());
 
-                previousApproved = "APPROVED".equalsIgnoreCase(entity.getStatus());
+                previousApproved = "APPROVED".equalsIgnoreCase(entity.getStatus()) || (currentPhaseIndex > i);
             } else {
                 item.put("status", "DRAFT");
                 item.put("subStepsCompleted", Collections.emptyList());
                 item.put("subStepData", Collections.emptyMap());
-                previousApproved = false;
+                previousApproved = (currentPhaseIndex > i);
             }
             result.add(item);
         }
@@ -270,6 +276,16 @@ public class TpAuditExecutionController {
                 newStatus = "RISK_ASSESSMENT_SUBMITTED_TL";
             } else if ("AUDIT_PLANNING".equalsIgnoreCase(phaseId)) {
                 newStatus = "AUDIT_PLAN_SUBMITTED_TL";
+            } else if ("FIELD_WORK".equalsIgnoreCase(phaseId)) {
+                newStatus = "FIELD_WORK_SUBMITTED_TL";
+            } else if ("ANALYSIS".equalsIgnoreCase(phaseId)) {
+                newStatus = "ANALYSIS_SUBMITTED_TL";
+            } else if ("REPORT".equalsIgnoreCase(phaseId)) {
+                newStatus = "REPORT_SUBMITTED_FOR_TL_REVIEW";
+            } else if ("ASSESSMENT".equalsIgnoreCase(phaseId)) {
+                newStatus = "ASSESSMENT_SUBMITTED_TL";
+            } else if ("NOTICE".equalsIgnoreCase(phaseId)) {
+                newStatus = "NOTICE_SUBMITTED_TL";
             } else {
                 newStatus = "SUBMITTED_FOR_TL_REVIEW";
             }
@@ -343,6 +359,8 @@ public class TpAuditExecutionController {
                     c.setStatus("SUBMITTED_FOR_COMMITTEE");
                 } else if ("AUDIT_PLANNING".equalsIgnoreCase(phaseId)) {
                     c.setStatus("AUDIT_PLAN_SUBMITTED_COMMITTEE");
+                } else if ("REPORT".equalsIgnoreCase(phaseId)) {
+                    c.setStatus("REPORT_SUBMITTED_COMMITTEE");
                 } else {
                     c.setStatus("SUBMITTED_FOR_COMMITTEE");
                 }
@@ -382,6 +400,33 @@ public class TpAuditExecutionController {
                     c.setTpCurrentPhase(phasesOrdered.get(idx + 1));
                 }
                 caseRepository.save(c);
+            }
+
+            if ("AUDIT_PLANNING".equalsIgnoreCase(phaseId)) {
+                auditPlanRepository.findByAuditCaseId(caseId).ifPresent(p -> {
+                    p.setStatus("APPROVED");
+                    p.setUpdatedBy(actorId);
+                    auditPlanRepository.save(p);
+                });
+            } else if ("FIELD_WORK".equalsIgnoreCase(phaseId)) {
+                fieldWorkDataRepository.findByAuditCaseId(caseId).ifPresent(fw -> {
+                    fw.setStatus("TL_SIGNED_OFF");
+                    fw.setUpdatedBy(actorId);
+                    fieldWorkDataRepository.save(fw);
+                });
+            } else if ("ANALYSIS".equalsIgnoreCase(phaseId)) {
+                analysisDataRepository.findByAuditCaseId(caseId).ifPresent(an -> {
+                    an.setStatus("TL_CONFIRMED");
+                    an.setUpdatedBy(actorId);
+                    analysisDataRepository.save(an);
+                });
+            } else if ("REPORT".equalsIgnoreCase(phaseId)) {
+                List<TpAuditReportEntity> reports = auditReportRepository.findByAuditCaseIdOrderByVersionDesc(caseId);
+                if (!reports.isEmpty()) {
+                    TpAuditReportEntity rep = reports.get(0);
+                    rep.setStatus("FULLY_APPROVED");
+                    auditReportRepository.save(rep);
+                }
             }
         } else {
             gate.setStatus("REVISION_REQUESTED");
@@ -1059,10 +1104,28 @@ public class TpAuditExecutionController {
     }
 
     @PostMapping("/field-work/fact-statement")
+    @Transactional
     public ResponseEntity<Void> saveFactStatement(@PathVariable UUID caseId, @RequestBody TpFieldWorkRequest req, @RequestHeader(value = "X-Actor-Id", defaultValue = "SYSTEM") String actorId) {
         int v = req.getFactStatementVersion() != null ? req.getFactStatementVersion() : 1;
-        String s = req.getFactStatementStatus() != null ? req.getFactStatementStatus() : "DRAFT";
+        String s = req.getFactStatementStatus() != null ? req.getFactStatementStatus() : (req.getStatus() != null ? req.getStatus() : "DRAFT");
         fieldWorkUseCase.saveFactStatement(caseId, req.getData(), v, s, actorId);
+
+        if ("TL_SIGNED_OFF".equalsIgnoreCase(s) || "APPROVED".equalsIgnoreCase(s)) {
+            phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "FIELD_WORK").ifPresent(gate -> {
+                gate.setStatus("APPROVED");
+                gate.setReviewedAt(OffsetDateTime.now());
+                gate.setReviewedBy(actorId);
+                gate.setReviewDecision("APPROVED");
+                gate.setReviewerRole("TEAM_LEADER");
+                phaseGateRepository.save(gate);
+            });
+            ApAuditCaseEntity c = caseRepository.findById(caseId).orElse(null);
+            if (c != null) {
+                c.setTpCurrentPhase("ANALYSIS");
+                caseRepository.save(c);
+            }
+        }
+
         logAction(caseId, "FACT_STATEMENT_SAVED", "FIELD_WORK", actorId, "AUDITOR",
                 "Saved Fact Statement (v" + v + ", status: " + s + ")", req, null, s, null, null);
         return ResponseEntity.ok().build();
@@ -1075,8 +1138,25 @@ public class TpAuditExecutionController {
     }
 
     @PostMapping("/field-work/complete")
+    @Transactional
     public ResponseEntity<Void> completeFieldWork(@PathVariable UUID caseId, @RequestHeader(value = "X-Actor-Id", defaultValue = "SYSTEM") String actorId) {
         fieldWorkUseCase.transitionToAnalysis(caseId, actorId);
+
+        phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "FIELD_WORK").ifPresent(gate -> {
+            gate.setStatus("APPROVED");
+            gate.setReviewedAt(OffsetDateTime.now());
+            gate.setReviewedBy(actorId);
+            gate.setReviewDecision("APPROVED");
+            phaseGateRepository.save(gate);
+        });
+
+        ApAuditCaseEntity c = caseRepository.findById(caseId).orElse(null);
+        if (c != null) {
+            c.setTpCurrentPhase("ANALYSIS");
+            c.setStatus("IN_PROGRESS");
+            caseRepository.save(c);
+        }
+
         logAction(caseId, "FIELD_WORK_COMPLETED", "FIELD_WORK", actorId, "AUDITOR",
                 "Field work concluded; transitioned to Transfer Pricing Analysis", null, "IN_PROGRESS", "ANALYSIS_IN_PROGRESS", null, null);
         return ResponseEntity.ok().build();
@@ -1178,6 +1258,20 @@ public class TpAuditExecutionController {
         analysis.setStatus("ARM_LENGTH_COMPLIANT");
         analysisDataRepository.save(analysis);
 
+        phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "ANALYSIS").ifPresent(gate -> {
+            gate.setStatus("APPROVED");
+            gate.setReviewedAt(OffsetDateTime.now());
+            gate.setReviewedBy(actorId);
+            gate.setReviewDecision("APPROVED");
+            phaseGateRepository.save(gate);
+        });
+
+        ApAuditCaseEntity c = caseRepository.findById(caseId).orElse(null);
+        if (c != null) {
+            c.setTpCurrentPhase("REPORT");
+            caseRepository.save(c);
+        }
+
         logAction(caseId, "ARMS_LENGTH_CONFIRMED", "ANALYSIS", actorId, "AUDITOR",
                 "AF3: Taxpayer's transfer prices confirmed at arm's length within IQR. No adjustment recommended.", req, null, "ARM_LENGTH_COMPLIANT", analysis.getId(), "TP_ANALYSIS");
 
@@ -1187,8 +1281,25 @@ public class TpAuditExecutionController {
     }
 
     @PostMapping("/analysis/complete")
+    @Transactional
     public ResponseEntity<Void> completeAnalysis(@PathVariable UUID caseId, @RequestHeader(value = "X-Actor-Id", defaultValue = "SYSTEM") String actorId) {
         analysisUseCase.transitionToReport(caseId, actorId);
+
+        phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "ANALYSIS").ifPresent(gate -> {
+            gate.setStatus("APPROVED");
+            gate.setReviewedAt(OffsetDateTime.now());
+            gate.setReviewedBy(actorId);
+            gate.setReviewDecision("APPROVED");
+            phaseGateRepository.save(gate);
+        });
+
+        ApAuditCaseEntity c = caseRepository.findById(caseId).orElse(null);
+        if (c != null) {
+            c.setTpCurrentPhase("REPORT");
+            c.setStatus("IN_PROGRESS");
+            caseRepository.save(c);
+        }
+
         logAction(caseId, "ANALYSIS_COMPLETED", "ANALYSIS", actorId, "AUDITOR",
                 "Economic analysis concluded; transitioned to TP Audit Report phase", null, "ANALYSIS_IN_PROGRESS", "REPORT_IN_PROGRESS", null, null);
         return ResponseEntity.ok().build();
@@ -1341,6 +1452,15 @@ public class TpAuditExecutionController {
                         caseId, null, "TP_AUDIT_REPORT", report.getId());
             }
         }
+
+        phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "REPORT").ifPresent(gate -> {
+            gate.setStatus("APPROVED");
+            gate.setReviewedAt(OffsetDateTime.now());
+            gate.setReviewedBy(actorId);
+            gate.setReviewDecision("APPROVED");
+            gate.setReviewerRole("COMMITTEE");
+            phaseGateRepository.save(gate);
+        });
 
         logAction(caseId, "COMMITTEE_REPORT_APPROVED", "REPORT", actorId, "COMMITTEE",
                 "Review Committee adopted resolution approving TP Audit Report", req, "SUBMITTED_FOR_REVIEW", "FULLY_APPROVED", report.getId(), "TP_REPORT");
@@ -1518,6 +1638,14 @@ public class TpAuditExecutionController {
         c.setTpCurrentPhase("NOTICE");
         caseRepository.save(c);
 
+        phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "ASSESSMENT").ifPresent(gate -> {
+            gate.setStatus("APPROVED");
+            gate.setReviewedAt(OffsetDateTime.now());
+            gate.setReviewedBy(actorId);
+            gate.setReviewDecision("APPROVED");
+            phaseGateRepository.save(gate);
+        });
+
         logAction(caseId, "ASSESSMENT_COMPUTATION_SAVED", "ASSESSMENT", actorId, "AUDITOR",
                 "Transfer Pricing Assessment & Penalties computed pursuant to Proclamation 979/2016",
                 req, "ASSESSMENT", "ASSESSMENT_COMPUTED", null, null);
@@ -1583,11 +1711,74 @@ public class TpAuditExecutionController {
 
         TpAuditNoticeEntity saved = auditNoticeRepository.save(notice);
 
+        caseEntity.setStatus("NOTICE_ISSUED");
+        caseEntity.setTpCurrentPhase("NOTICE");
+        caseRepository.save(caseEntity);
+
         logAction(caseId, "OFFICIAL_ASSESSMENT_ISSUED", "ASSESSMENT", actorId, "PROCESS_OWNER",
                 "Issued Official Transfer Pricing Assessment Notice: Total ETB " + total + " (Principal: " + principal + ", 50% Penalty: " + penalty + ", Interest: " + interest + ")",
                 req, "DRAFT", "OFFICIAL_ASSESSMENT_ISSUED", saved.getId(), "TP_ASSESSMENT");
 
         return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping("/notice/authorize")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> authorizeNotice(
+            @PathVariable UUID caseId,
+            @RequestBody(required = false) Map<String, Object> req,
+            @RequestHeader(value = "X-Actor-Id", defaultValue = "SYSTEM") String actorId,
+            @RequestHeader(value = "X-Actor-Role", defaultValue = "COMMITTEE") String actorRole) {
+
+        ApAuditCaseEntity caseEntity = caseRepository.findById(caseId)
+                .orElseThrow(() -> new IllegalArgumentException("Case not found: " + caseId));
+
+        String authorizedBy = req != null && req.get("authorizedBy") != null ? req.get("authorizedBy").toString() : actorId;
+        String comments = req != null && req.get("comments") != null ? req.get("comments").toString() : "Statutory Notice of Assessment legally signed and authorized for formal dispatch.";
+
+        TpAuditNoticeEntity notice = auditNoticeRepository.findByAuditCaseId(caseId)
+                .orElseGet(() -> TpAuditNoticeEntity.builder()
+                        .auditCase(caseEntity)
+                        .noticeReferenceNumber("NOT-TP-" + caseEntity.getCaseNumber().replaceAll("[^a-zA-Z0-9]", ""))
+                        .taxpayerName(caseEntity.getTaxpayerName())
+                        .tin(caseEntity.getTaxpayerId())
+                        .auditPeriod("FY 2020 – FY 2024")
+                        .assessedPrincipalTax(new BigDecimal("26800000"))
+                        .penalties(new BigDecimal("13400000"))
+                        .interest(new BigDecimal("4250000"))
+                        .totalAssessmentAmount(new BigDecimal("44450000"))
+                        .issueDate(LocalDate.now())
+                        .responseDeadline(LocalDate.now().plusDays(30))
+                        .deliveryMethod("PORTAL")
+                        .build());
+
+        notice.setStatus("OFFICIAL_ASSESSMENT_ISSUED");
+        notice.setDeliveryStatus("DELIVERED");
+        auditNoticeRepository.save(notice);
+
+        caseEntity.setStatus("NOTICE_ISSUED");
+        caseEntity.setTpCurrentPhase("CLOSURE");
+        caseRepository.save(caseEntity);
+
+        phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "NOTICE").ifPresent(gate -> {
+            gate.setStatus("APPROVED");
+            gate.setReviewedAt(OffsetDateTime.now());
+            gate.setReviewedBy(authorizedBy);
+            gate.setReviewDecision("APPROVED");
+            gate.setReviewerRole("COMMITTEE");
+            gate.setReviewComments(comments);
+            phaseGateRepository.save(gate);
+        });
+
+        logAction(caseId, "NOTICE_AUTHORIZED", "NOTICE", actorId, actorRole,
+                "Statutory Notice of Assessment legally authorized and issued: " + comments,
+                req, "ASSESSMENT_COMPUTED", "NOTICE_ISSUED", notice.getId(), "TP_NOTICE");
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("status", "NOTICE_ISSUED");
+        res.put("noticeId", notice.getId());
+        res.put("message", "Statutory Notice authorized and issued successfully.");
+        return ResponseEntity.ok(res);
     }
 
     @PostMapping("/assessment/taxpayer-accept")
@@ -1650,6 +1841,48 @@ public class TpAuditExecutionController {
         return ResponseEntity.ok(saved);
     }
 
+    @PostMapping("/objection/record")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> recordObjectionDetermination(
+            @PathVariable UUID caseId,
+            @RequestBody(required = false) Map<String, Object> req,
+            @RequestHeader(value = "X-Actor-Id", defaultValue = "SYSTEM") String actorId) {
+
+        ApAuditCaseEntity caseEntity = caseRepository.findById(caseId)
+                .orElseThrow(() -> new IllegalArgumentException("Case not found: " + caseId));
+
+        String grounds = req != null && req.get("groundsSummary") != null ? req.get("groundsSummary").toString() : "Taxpayer objection points";
+        String rejoinder = req != null && req.get("auditorRejoinder") != null ? req.get("auditorRejoinder").toString() : "Auditor technical defense";
+        String decision = req != null && req.get("committeeDecision") != null ? req.get("committeeDecision").toString() : "Upheld assessment";
+
+        TpAuditNoticeEntity notice = auditNoticeRepository.findByAuditCaseId(caseId).orElse(null);
+
+        TpObjectionEntity objection = TpObjectionEntity.builder()
+                .auditCase(caseEntity)
+                .noticeId(notice != null ? notice.getId() : null)
+                .taxpayerId(caseEntity.getTaxpayerId())
+                .objectionDate(OffsetDateTime.now())
+                .status("DETERMINED")
+                .factualExplanation(grounds)
+                .legalArguments(rejoinder)
+                .disputedTpAnalysisSections(decision)
+                .reviewResult(decision)
+                .reviewedAt(OffsetDateTime.now())
+                .reviewerId(actorId)
+                .build();
+
+        objectionRepository.save(objection);
+
+        logAction(caseId, "OBJECTION_DETERMINATION_RECORDED", "OBJECTION", actorId, "AUDITOR",
+                "Recorded objection determination: " + decision, req, null, "DETERMINED", objection.getId(), "TP_OBJECTION");
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("status", "DETERMINED");
+        res.put("objectionId", objection.getId());
+        res.put("message", "Objection determination recorded.");
+        return ResponseEntity.ok(res);
+    }
+
     @PostMapping("/assessment/default-enforce")
     @Transactional
     public ResponseEntity<Map<String, Object>> triggerDefaultEnforcement(
@@ -1687,8 +1920,17 @@ public class TpAuditExecutionController {
         ApAuditCaseEntity c = caseRepository.findById(caseId)
                 .orElseThrow(() -> new IllegalArgumentException("Case not found: " + caseId));
         c.setStatus("COMPLETED");
+        c.setTpCurrentPhase("CLOSURE");
         c.setCompletedAt(OffsetDateTime.now());
         caseRepository.save(c);
+
+        phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "CLOSURE").ifPresent(gate -> {
+            gate.setStatus("APPROVED");
+            gate.setReviewedAt(OffsetDateTime.now());
+            gate.setReviewedBy(actorId);
+            gate.setReviewDecision("APPROVED");
+            phaseGateRepository.save(gate);
+        });
 
         logAction(caseId, "TP_AUDIT_CONCLUDED_ARCHIVED", "CLOSURE", actorId, "PROCESS_OWNER",
                 "Concluded Transfer Pricing Audit, archived case files, and updated MoR executive KPI dashboard", req, "IN_PROGRESS", "COMPLETED", null, null);
@@ -1717,8 +1959,18 @@ public class TpAuditExecutionController {
     }
 
     @PostMapping("/close")
+    @Transactional
     public ResponseEntity<Void> closeCase(@PathVariable UUID caseId, @RequestHeader(value = "X-Actor-Id", defaultValue = "SYSTEM") String actorId) {
         noticeAndObjectionUseCase.closeCase(caseId, actorId);
+
+        phaseGateRepository.findByAuditCaseIdAndPhaseId(caseId, "CLOSURE").ifPresent(gate -> {
+            gate.setStatus("APPROVED");
+            gate.setReviewedAt(OffsetDateTime.now());
+            gate.setReviewedBy(actorId);
+            gate.setReviewDecision("APPROVED");
+            phaseGateRepository.save(gate);
+        });
+
         logAction(caseId, "CASE_CLOSED", "CLOSURE", actorId, "PROCESS_OWNER",
                 "Case closed via standard workflow", null, null, "CLOSED", null, null);
         return ResponseEntity.ok().build();

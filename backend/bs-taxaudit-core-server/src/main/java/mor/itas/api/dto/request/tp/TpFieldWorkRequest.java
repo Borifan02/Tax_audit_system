@@ -10,4 +10,6 @@ public class TpFieldWorkRequest {
     private JsonNode data;         // generic payload for any field work section
     private String factStatementStatus;
     private Integer factStatementVersion;
+    private String status;
+    private String comments;
 }

@@ -588,7 +588,15 @@ export default function TeamLeaderDashboard({ view }) {
               role={isCommitteeUser ? 'process_owner' : 'team_leader'}
               user={user}
               onOpenWorkspace={(caseData, targetPhase) => {
-                const target = targetPhase || (caseData?.status === 'AUDIT_PLAN_SUBMITTED_TL' ? 'AUDIT_PLANNING' : 'DETAILED_RISK_ASSESSMENT');
+                let target = targetPhase;
+                if (!target) {
+                  if (caseData?.status === 'AUDIT_PLAN_SUBMITTED_TL' || caseData?.status === 'AUDIT_PLAN_SUBMITTED_COMMITTEE') target = 'AUDIT_PLANNING';
+                  else if (caseData?.status === 'FIELD_WORK_SUBMITTED_TL') target = 'FIELD_WORK';
+                  else if (caseData?.status === 'ANALYSIS_SUBMITTED_TL') target = 'ANALYSIS';
+                  else if (caseData?.status === 'REPORT_SUBMITTED_FOR_TL_REVIEW' || caseData?.status === 'REPORT_SUBMITTED_COMMITTEE') target = 'REPORT';
+                  else if (caseData?.status === 'RISK_ASSESSMENT_SUBMITTED_TL') target = 'DETAILED_RISK_ASSESSMENT';
+                  else target = caseData?.tpCurrentPhase || 'DETAILED_RISK_ASSESSMENT';
+                }
                 setTpWorkspacePhase(target);
                 setTpWorkspaceCase(caseData);
               }}
@@ -754,12 +762,17 @@ export default function TeamLeaderDashboard({ view }) {
                               icon={ShieldCheck}
                               className="bg-purple-600 hover:bg-purple-700 text-white"
                               onClick={() => {
-                                const targetPhase = c.status === 'AUDIT_PLAN_SUBMITTED_TL' ? 'AUDIT_PLANNING' : 'DETAILED_RISK_ASSESSMENT';
+                                let targetPhase = c.tpCurrentPhase || 'DETAILED_RISK_ASSESSMENT';
+                                if (c.status === 'AUDIT_PLAN_SUBMITTED_TL' || c.status === 'AUDIT_PLAN_SUBMITTED_COMMITTEE') targetPhase = 'AUDIT_PLANNING';
+                                else if (c.status === 'FIELD_WORK_SUBMITTED_TL') targetPhase = 'FIELD_WORK';
+                                else if (c.status === 'ANALYSIS_SUBMITTED_TL') targetPhase = 'ANALYSIS';
+                                else if (c.status === 'REPORT_SUBMITTED_FOR_TL_REVIEW' || c.status === 'REPORT_SUBMITTED_COMMITTEE') targetPhase = 'REPORT';
+                                else if (c.status === 'RISK_ASSESSMENT_SUBMITTED_TL') targetPhase = 'DETAILED_RISK_ASSESSMENT';
                                 setTpWorkspacePhase(targetPhase);
                                 setTpWorkspaceCase(c);
                               }}
                             >
-                              {['SUBMITTED_FOR_TL_REVIEW', 'REPORT_SUBMITTED_FOR_TL_REVIEW', 'RISK_ASSESSMENT_SUBMITTED_TL', 'AUDIT_PLAN_SUBMITTED_TL'].includes(c.status)
+                              {['SUBMITTED_FOR_TL_REVIEW', 'REPORT_SUBMITTED_FOR_TL_REVIEW', 'RISK_ASSESSMENT_SUBMITTED_TL', 'AUDIT_PLAN_SUBMITTED_TL', 'FIELD_WORK_SUBMITTED_TL', 'ANALYSIS_SUBMITTED_TL'].includes(c.status)
                                 ? 'Review & Endorse'
                                 : 'TP Review'}
                             </Button>
@@ -768,7 +781,12 @@ export default function TeamLeaderDashboard({ view }) {
                               variant="secondary"
                               icon={Layers3}
                               onClick={() => {
-                                const targetPhase = c.status === 'AUDIT_PLAN_SUBMITTED_TL' ? 'AUDIT_PLANNING' : 'DETAILED_RISK_ASSESSMENT';
+                                let targetPhase = c.tpCurrentPhase || 'DETAILED_RISK_ASSESSMENT';
+                                if (c.status === 'AUDIT_PLAN_SUBMITTED_TL' || c.status === 'AUDIT_PLAN_SUBMITTED_COMMITTEE') targetPhase = 'AUDIT_PLANNING';
+                                else if (c.status === 'FIELD_WORK_SUBMITTED_TL') targetPhase = 'FIELD_WORK';
+                                else if (c.status === 'ANALYSIS_SUBMITTED_TL') targetPhase = 'ANALYSIS';
+                                else if (c.status === 'REPORT_SUBMITTED_FOR_TL_REVIEW' || c.status === 'REPORT_SUBMITTED_COMMITTEE') targetPhase = 'REPORT';
+                                else if (c.status === 'RISK_ASSESSMENT_SUBMITTED_TL') targetPhase = 'DETAILED_RISK_ASSESSMENT';
                                 setTpWorkspacePhase(targetPhase);
                                 setTpWorkspaceCase(c);
                               }}
