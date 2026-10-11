@@ -109,14 +109,24 @@ export default function TeamLeaderDashboard({ view }) {
       const nextPhase = PHASE_MAP[view];
       setTpWorkspacePhase(nextPhase);
 
-      const tpCase = cases.find(c => (c.auditType || '').toUpperCase().includes('TP') || (c.auditType || '').toUpperCase().includes('TRANSFER')) || cases[0] || null;
+      const tpCase = cases.find(c => (c.auditType || '').toUpperCase().includes('TP') || (c.auditType || '').toUpperCase().includes('TRANSFER')) || null;
       if (tpCase) {
         setTpWorkspaceCase(prev => (prev?.id === tpCase.id ? prev : tpCase));
       }
     } else if (view === 'tl-da-workspace') {
-      const deskCase = cases.find(c => (c.auditType || '').toUpperCase().includes('DESK')) || cases[0] || null;
+      const deskCase = cases.find(c => (c.auditType || '').toUpperCase().includes('DESK')) || null;
       if (deskCase) {
         setDaWorkspaceCase(prev => (prev?.id === deskCase.id ? prev : deskCase));
+      }
+    } else if (view && view.startsWith('comp-phase-')) {
+      const compCase = cases.find(c => (c.auditType || '').toUpperCase().includes('COMP')) || null;
+      if (compCase) {
+        setCaWorkspaceCase(prev => (prev?.id === compCase.id ? prev : compCase));
+      }
+    } else if (view && view.startsWith('issue-phase-')) {
+      const issCase = cases.find(c => (c.auditType || '').toUpperCase().includes('ISSUE')) || null;
+      if (issCase) {
+        setIssueReviewCase(issCase);
       }
     } else if (view === 'tp-tasks') {
       setTpWorkspaceCase(null);
@@ -164,30 +174,28 @@ export default function TeamLeaderDashboard({ view }) {
       }
     } catch (e) { console.error('fetchCases', e); }
     finally { 
-      // MOCK FALLBACK FOR COMPREHENSIVE AUDIT TEAM LEADER
-      if (user?.role?.toUpperCase().includes('TEAM_LEADER')) {
-        const hasCa = fetched.some(c => (c.auditType || '').toUpperCase().includes('COMPREHENSIVE'));
-        if (!hasCa) {
-          fetched.push({
-            id: "mock-ca-123",
-            caseNumber: "CA-2026-101",
-            auditType: "COMPREHENSIVE_AUDIT",
-            tin: "0001234567",
-            taxpayerName: "Ethio-Telecom Enterprise",
-            taxCenter: "TC-AA-01",
-            status: "SUBMITTED_TO_TL",
-            frontendStatus: "Pending TL Review",
-            assignedAuditor: "u-aud-federal-lto1-comp-1-1",
-            assignedTeamLeaderId: user.id || user.username,
-            riskScore: 85,
-            planYear: 2026
-          });
-        }
+      // Only provide fallback if this user is specifically a Comprehensive Audit Team Leader and has 0 cases
+      const isCompTl = (user?.auditType || '').toUpperCase().includes('COMP') || (user?.username || '').toLowerCase().includes('comp');
+      if (user?.role?.toUpperCase().includes('TEAM_LEADER') && isCompTl && fetched.length === 0) {
+        fetched.push({
+          id: "mock-ca-123",
+          caseNumber: "CA-2026-101",
+          auditType: "COMPREHENSIVE_AUDIT",
+          tin: "0001234567",
+          taxpayerName: "Ethio-Telecom Enterprise",
+          taxCenter: "TC-AA-01",
+          status: "SUBMITTED_TO_TL",
+          frontendStatus: "Pending TL Review",
+          assignedAuditor: "u-aud-federal-lto1-comp-1-1",
+          assignedTeamLeaderId: user.id || user.username,
+          riskScore: 85,
+          planYear: 2026
+        });
       }
       setCases(fetched);
       setLoading(false); 
     }
-  }, [user?.id, user?.username, user?.taxCenter, isCommitteeUser, user?.role]);
+  }, [user?.id, user?.username, user?.taxCenter, user?.auditType, isCommitteeUser, user?.role]);
 
   // ── Fetch auditors under this TL ────────────────────────────────────────────
   const fetchAuditors = useCallback(async () => {

@@ -119,6 +119,12 @@ const AUDITOR_NAV = {
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'cases', label: 'My Cases', icon: Search }
       ]
+    },
+    {
+      title: 'JOINT AUDIT EXECUTION',
+      items: [
+        { id: 'ja-workspace', label: 'Joint Audit Workspace', icon: FileText }
+      ]
     }
   ],
   TRANSFER_PRICING: [

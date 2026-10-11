@@ -5,7 +5,7 @@
  * "My Audit Cases" uses a table layout matching Team Leader's My Cases
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Search, Clock, CheckCircle, PlayCircle, Eye, FileText, AlertTriangle,
   BarChart3, RefreshCw, Loader2, ArrowRight, Calendar, Users, Briefcase,
@@ -26,8 +26,17 @@ import AuditorWorkspace from './AuditorWorkspace.jsx';
 import TpAuditorWorkspace from '../../../tp/pages/TpAuditorWorkspace.jsx';
 import DeskAuditWorkspace from '../../../da/components/workspace/DeskAuditWorkspace';
 import { ComprehensiveAuditWorkspace } from '../../../ca/components/comprehensive/ComprehensiveAuditWorkspace';
+import IssueAuditWorkspace from '../../../issue/pages/IssueAuditWorkspace.jsx';
 import CaseDetailModal from '../shared/CaseDetailModal.jsx';
 import { isJointAuditUser, getEffectiveAuditType } from '../../../../components/layout/Sidebar.jsx';
+
+const ISSUE_PHASE_MAP = {
+  'issue-phase-1': 'NOTIFICATION',
+  'issue-phase-2': 'EVIDENCE_GATHERING',
+  'issue-phase-3': 'REPORT_DRAFT',
+  'issue-phase-4': 'REVIEW_CHAIN',
+  'issue-phase-5': 'DIRECTOR_DECISION',
+};
 
 // ── Settings Panel Component ───────────────────────────────────────────────────
 const SettingsPanel = () => {
@@ -605,21 +614,14 @@ export default function AuditorDashboard({ view, onNavigate }) {
   const { user } = useAuth();
   const { getWorkflow, actions: workflowActions } = useWorkflow();
 
-  const isJoint = isJointAuditUser(user);
-  const isTp = !isJoint && getEffectiveAuditType(user) === 'TRANSFER_PRICING';
+  const effectiveAuditType = getEffectiveAuditType(user);
+  const isJoint = isJointAuditUser(user) || effectiveAuditType === 'JOINT_AUDIT';
+  const isTp = !isJoint && effectiveAuditType === 'TRANSFER_PRICING';
 
   // Active selected case for the active audit execution view
   const [activeStepCase, setActiveStepCase] = useState(null);
   const [lastStepView, setLastStepView] = useState(view);
   const [dossierCase, setDossierCase] = useState(null);
-
-  // If user clicks a different phase in the sidebar, reset activeStepCase so they can select a case (TP only)
-  if (view !== lastStepView) {
-    setLastStepView(view);
-    if (!isJoint && view !== 'da-workspace') {
-      setActiveStepCase(null);
-    }
-  }
 
   // Active selected case stored in sessionStorage for general workflow
   const [selectedCaseId, setSelectedCaseId] = useState(() => {
@@ -627,10 +629,36 @@ export default function AuditorDashboard({ view, onNavigate }) {
   });
   const [executingCaseOverride, setExecutingCaseOverride] = useState(null);
 
+  // Reset active case state when user switches account
+  useEffect(() => {
+    setActiveStepCase(null);
+    setSelectedCaseId(null);
+    setExecutingCaseOverride(null);
+  }, [user?.id, user?.username, user?.auditType]);
+
+  // If user clicks a top-level non-workspace view in the sidebar (e.g., Dashboard, My Cases), exit the active workspace
+  if (view !== lastStepView) {
+    setLastStepView(view);
+    const nonWorkspaceViews = ['dashboard', 'cases', 'audit-trail', 'audit_trail', 'taxpayer-comms', 'profile', 'settings'];
+    if (nonWorkspaceViews.includes(view)) {
+      setActiveStepCase(null);
+    }
+  }
+
   // Fetch data using the custom hook
   const {
     cases, metrics, loading, refreshing, error, refresh
-  } = useAuditorData(user?.id);
+  } = useAuditorData(user?.id || user?.username);
+
+  const resolveCaseAuditType = useCallback((caseItem) => {
+    const raw = (caseItem?.auditType || '').toUpperCase().replace(/[\s-]+/g, '_');
+    if (raw.includes('JOINT') || raw === 'JA') return 'JOINT_AUDIT';
+    if (raw.includes('DESK')) return 'DESK_AUDIT';
+    if (raw.includes('COMPREHENSIVE') || raw.includes('COMP')) return 'COMPREHENSIVE_AUDIT';
+    if (raw.includes('TRANSFER') || raw === 'TP' || raw.includes('_TP')) return 'TRANSFER_PRICING';
+    if (raw.includes('ISSUE')) return 'ISSUE_AUDIT';
+    return effectiveAuditType;
+  }, [effectiveAuditType]);
 
   // Derive activeCase
   const activeCase = useMemo(() => {
@@ -643,12 +671,12 @@ export default function AuditorDashboard({ view, onNavigate }) {
 
   // Categorize cases
   const activeCases = useMemo(() => 
-    cases.filter(c => c.status === 'IN_PROGRESS' || c.status === 'ASSIGNED'),
+    cases.filter(c => !['COMPLETED', 'CONCLUDED', 'CLOSED'].includes((c.status || '').toUpperCase())),
     [cases]
   );
 
   const completedCases = useMemo(() => 
-    cases.filter(c => c.status === 'COMPLETED' || c.status === 'CONCLUDED'),
+    cases.filter(c => ['COMPLETED', 'CONCLUDED', 'CLOSED'].includes((c.status || '').toUpperCase())),
     [cases]
   );
 
@@ -676,12 +704,14 @@ export default function AuditorDashboard({ view, onNavigate }) {
       });
     }
 
+    const caseType = resolveCaseAuditType(caseItem);
     const fullCase = {
       id: caseId,
       taxpayerName: caseItem.taxpayerName,
       riskLevel: caseItem.riskPriority || caseItem.riskLevel,
       tin: caseItem.taxpayerId || caseItem.tin,
       sector: caseItem.segment || caseItem.sector,
+      auditType: caseItem.auditType || caseType,
       ...caseItem,
     };
 
@@ -692,21 +722,26 @@ export default function AuditorDashboard({ view, onNavigate }) {
     setExecutingCaseOverride(fullCase);
 
     if (onNavigate) {
-      if (!isJoint && isTp && targetStep) {
-        onNavigate(targetStep);
-      } else if ((fullCase.auditType || '').toUpperCase().includes('DESK') || (fullCase.auditType === undefined)) {
+      if (caseType === 'JOINT_AUDIT') {
+        onNavigate(targetStep || 'ja-workspace');
+      } else if (caseType === 'TRANSFER_PRICING') {
+        onNavigate(targetStep || 'phase-1');
+      } else if (caseType === 'ISSUE_AUDIT') {
+        onNavigate(targetStep || 'issue-phase-1');
+      } else if (caseType === 'DESK_AUDIT') {
         onNavigate('da-workspace');
-      } else {
+      } else if (caseType === 'COMPREHENSIVE_AUDIT') {
         onNavigate('ca-workspace');
       }
     }
-  }, [getWorkflow, workflowActions, user?.id, onNavigate, isJoint, isTp]);
+  }, [getWorkflow, workflowActions, user?.id, onNavigate, resolveCaseAuditType]);
 
   const handleCloseWorkspace = useCallback(() => {
     setActiveStepCase(null);
     setSelectedCaseId(null);
     setExecutingCaseOverride(null);
     sessionStorage.removeItem('auditor_active_case_id');
+    sessionStorage.removeItem('auditor_active_case_data');
     if (onNavigate) {
       onNavigate('cases');
     }
@@ -724,42 +759,50 @@ export default function AuditorDashboard({ view, onNavigate }) {
 
   // ── Render Case Workspace if Active ──────────────────────────────────────
   if (activeStepCase) {
-    const rawType = (activeStepCase.auditType || '').toUpperCase();
-    const caseIsDesk = rawType.includes('DESK');
-    const caseIsComprehensive = rawType.includes('COMPREHENSIVE');
-    const caseIsTp = rawType.includes('TP') || rawType.includes('TRANSFER');
+    const caseType = resolveCaseAuditType(activeStepCase);
 
-    if (caseIsDesk) {
+    if (caseType === 'JOINT_AUDIT') {
+      return (
+        <AuditorWorkspace
+          caseData={activeStepCase}
+          onBack={handleCloseWorkspace}
+        />
+      );
+    }
+
+    if (caseType === 'DESK_AUDIT') {
       return (
         <DeskAuditWorkspace
           caseId={activeStepCase.id || activeStepCase.caseId}
           initialCaseData={activeStepCase}
-          onSwitchCase={() => {
-            setActiveStepCase(null);
-            setExecutingCaseOverride(null);
-            setSelectedCaseId(null);
-            sessionStorage.removeItem('auditor_active_case_id');
-            if (onNavigate) onNavigate('cases');
-          }}
+          onSwitchCase={handleCloseWorkspace}
         />
       );
     }
-    if (caseIsComprehensive) {
+
+    if (caseType === 'COMPREHENSIVE_AUDIT') {
       return (
         <ComprehensiveAuditWorkspace
           caseId={activeStepCase.id || activeStepCase.caseId}
           currentUser={user}
-          onCaseChange={() => {
-            setActiveStepCase(null);
-            setExecutingCaseOverride(null);
-            setSelectedCaseId(null);
-            sessionStorage.removeItem('auditor_active_case_id');
-            if (onNavigate) onNavigate('cases');
-          }}
+          onCaseChange={handleCloseWorkspace}
         />
       );
     }
-    if (!isJoint && (isTp || caseIsTp)) {
+
+    if (caseType === 'ISSUE_AUDIT') {
+      return (
+        <IssueAuditWorkspace
+          caseData={activeStepCase}
+          user={user}
+          initialPhase={ISSUE_PHASE_MAP[view] || 'NOTIFICATION'}
+          onClose={handleCloseWorkspace}
+          onRefresh={refresh}
+        />
+      );
+    }
+
+    if (caseType === 'TRANSFER_PRICING') {
       return (
         <TpAuditorWorkspace
           caseData={activeStepCase}
@@ -767,10 +810,7 @@ export default function AuditorDashboard({ view, onNavigate }) {
           initialGate={STEP_CONFIG[view]?.gate || 'DETAILED_RISK_ASSESSMENT'}
           assignedCases={cases}
           onSwitchCase={(newCase) => setActiveStepCase(newCase)}
-          onClose={() => {
-            setActiveStepCase(null);
-            setExecutingCaseOverride(null);
-          }}
+          onClose={handleCloseWorkspace}
           onRefresh={refresh}
         />
       );
@@ -779,14 +819,48 @@ export default function AuditorDashboard({ view, onNavigate }) {
     return (
       <AuditorWorkspace
         caseData={activeStepCase}
-        onBack={() => {
-          setActiveStepCase(null);
-          setExecutingCaseOverride(null);
-          setSelectedCaseId(null);
-          sessionStorage.removeItem('auditor_active_case_id');
-        }}
+        onBack={handleCloseWorkspace}
       />
     );
+  }
+
+  // ── Joint Audit Workspace Sidebar View ────────────────────────────────────
+  if (view === 'ja-workspace' || view === 'workspace' || (isJoint && view && view.startsWith('ja-'))) {
+    const targetJaCase = activeCase || cases[0] || null;
+    return (
+      <AuditorWorkspace
+        caseData={targetJaCase}
+        onBack={() => onNavigate && onNavigate('cases')}
+      />
+    );
+  }
+
+  // ── Comprehensive Audit Workspace Sidebar Views ───────────────────────────
+  if (view === 'ca-workspace' || (view && view.startsWith('comp-aud-'))) {
+    const targetCaCase = activeCase || cases[0] || null;
+    return (
+      <ComprehensiveAuditWorkspace
+        caseId={targetCaCase?.id || targetCaCase?.caseId}
+        currentUser={user}
+        onCaseChange={() => onNavigate && onNavigate('cases')}
+      />
+    );
+  }
+
+  // ── Issue Audit Execution Sidebar Views ───────────────────────────────────
+  if (view && ISSUE_PHASE_MAP[view]) {
+    const targetIssueCase = activeCase || cases[0] || null;
+    if (targetIssueCase) {
+      return (
+        <IssueAuditWorkspace
+          caseData={targetIssueCase}
+          user={user}
+          initialPhase={ISSUE_PHASE_MAP[view]}
+          onClose={() => onNavigate && onNavigate('cases')}
+          onRefresh={refresh}
+        />
+      );
+    }
   }
 
   // ── TP AUDIT EXECUTION Steps (Strictly for Transfer Pricing, NEVER for Joint Audit) ──
@@ -806,6 +880,16 @@ export default function AuditorDashboard({ view, onNavigate }) {
 
   // ── Desk Audit Sidebar Views ──────────────────────────────────────────────
   if (view === 'da-workspace') {
+    const targetDaCase = activeCase || cases[0] || null;
+    if (targetDaCase && resolveCaseAuditType(targetDaCase) === 'DESK_AUDIT') {
+      return (
+        <DeskAuditWorkspace
+          caseId={targetDaCase.id || targetDaCase.caseId}
+          initialCaseData={targetDaCase}
+          onSwitchCase={() => onNavigate && onNavigate('cases')}
+        />
+      );
+    }
     return (
       <div className="flex-1 bg-gray-50 flex flex-col min-h-screen">
         <div className="bg-white border-b border-gray-200 px-8 py-5">

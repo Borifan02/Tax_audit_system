@@ -140,6 +140,7 @@ const PAGE_TITLES = {
   auditor: {
     dashboard:   { title: 'Auditor Dashboard',      subtitle: 'Your active audit cases' },
     cases:       { title: 'My Cases',               subtitle: 'Cases assigned to you' },
+    'ja-workspace': { title: 'Joint Audit Workspace', subtitle: 'Execute 10-step statutory joint audit workflow and inter-agency verification' },
     'da-workspace': { title: 'Desk Audit Workspace', subtitle: 'Execute desk audit procedures and evidence' },
     'ca-workspace': { title: 'Comprehensive Audit Workspace', subtitle: 'Execute comprehensive audit procedures and multi-tax examination' },
     audit_trail: { title: 'Governance Audit Trail', subtitle: 'Immutable compliance & statutory governance audit log' },
@@ -276,22 +277,6 @@ function RoleRouter({ user, view, onNavigate }) {
     return <TeamLeaderDashboard view={view} onNavigate={onNavigate} />;
   }
   if (role === 'auditor') {
-    if (view === 'da-workspace') {
-      const activeCaseId = sessionStorage.getItem('auditor_active_case_id') || user?.assignedCaseId || user?.caseId || null;
-      let initialCaseInfo = null;
-      try {
-        initialCaseInfo = JSON.parse(sessionStorage.getItem('auditor_active_case_data'));
-      } catch(e) {}
-      return <DeskAuditWorkspace caseId={activeCaseId} initialCaseInfo={initialCaseInfo} />;
-    }
-    if (view === 'ca-workspace') {
-      const activeCaseId = sessionStorage.getItem('auditor_active_case_id') || user?.assignedCaseId || user?.caseId || null;
-      let initialCaseInfo = null;
-      try {
-        initialCaseInfo = JSON.parse(sessionStorage.getItem('auditor_active_case_data'));
-      } catch(e) {}
-      return <ComprehensiveAuditWorkspace caseData={{ id: activeCaseId, ...initialCaseInfo }} onClose={() => onNavigate('dashboard')} />;
-    }
     const activeView = (isJointAuditUser(user) && view && view.startsWith('phase-')) ? 'dashboard' : view;
     return (
       <WorkflowProvider>
@@ -339,9 +324,11 @@ export default function App() {
   const { ready } = useApp();
   const [view, setView] = useState('dashboard');
 
-  // Reset active view whenever user switches or logs in
+  // Reset active view and stored auditor case whenever user switches or logs in
   useEffect(() => {
     setView('dashboard');
+    sessionStorage.removeItem('auditor_active_case_id');
+    sessionStorage.removeItem('auditor_active_case_data');
   }, [user?.id, user?.username, user?.role, user?.auditType]);
 
   // For Joint Audit users, TP phases are not valid views

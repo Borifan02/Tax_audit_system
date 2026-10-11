@@ -51,16 +51,16 @@ public class AuditorDashboardController {
 
         // Compute metrics
         long totalAssigned = allCases.size();
-        long inProgress = allCases.stream()
-                .filter(c -> "IN_PROGRESS".equals(c.getStatus()))
-                .count();
         long completed = allCases.stream()
-                .filter(c -> "COMPLETED".equals(c.getStatus()) || "CONCLUDED".equals(c.getStatus()))
+                .filter(c -> "COMPLETED".equals(c.getStatus()) || "CONCLUDED".equals(c.getStatus()) || "CLOSED".equals(c.getStatus()))
+                .count();
+        long inProgress = allCases.stream()
+                .filter(c -> !"COMPLETED".equals(c.getStatus()) && !"CONCLUDED".equals(c.getStatus()) && !"CLOSED".equals(c.getStatus()))
                 .count();
 
         // Build case summaries for active cases
         List<ApAuditCaseEntity> activeCases = allCases.stream()
-                .filter(c -> "IN_PROGRESS".equals(c.getStatus()) || "ASSIGNED".equals(c.getStatus()))
+                .filter(c -> !"COMPLETED".equals(c.getStatus()) && !"CONCLUDED".equals(c.getStatus()) && !"CLOSED".equals(c.getStatus()))
                 .sorted((a, b) -> {
                     if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
                     if (a.getCreatedAt() == null) return 1;

@@ -149,15 +149,33 @@ export const teamLeaderAPI = {
    * Get all cases assigned to this team leader
    */
   getAssignedCases: async (teamLeaderId, filters = {}) => {
-    // Resolve frontend ID to backend UUID for DB query
-    const params = new URLSearchParams({ assignedTeamLeader: resolveId(teamLeaderId) });
-    if (filters.status) params.append('status', filters.status);
-    
-    const response = await fetch(`${CASE_API_BASE}?${params}`, {
-      headers: getHeaders(),
-    });
-    if (!response.ok) throw new Error('Failed to fetch assigned cases');
-    return response.json();
+    const resolved = resolveId(teamLeaderId);
+    const idsToQuery = Array.from(new Set([teamLeaderId, resolved].filter(Boolean)));
+    const byId = new Map();
+
+    for (const id of idsToQuery) {
+      const params = new URLSearchParams({ assignedTeamLeader: id });
+      if (filters.status) params.append('status', filters.status);
+      try {
+        const response = await fetch(`${CASE_API_BASE}?${params}`, {
+          headers: getHeaders(),
+        });
+        if (response.ok) {
+          const payload = await response.json();
+          const list = payload?.data || payload?.content || (Array.isArray(payload) ? payload : []);
+          if (Array.isArray(list)) {
+            list.forEach(c => {
+              const key = c.id || c.caseId || c.committeeCaseId || c.caseNumber;
+              if (key && !byId.has(key)) byId.set(key, c);
+            });
+          }
+        }
+      } catch (e) {
+        // Ignore network error for one variant
+      }
+    }
+
+    return { data: Array.from(byId.values()) };
   },
 
   /**
