@@ -922,71 +922,106 @@ export const QAOfficerWorkspace: React.FC<QAOfficerWorkspaceProps> = ({
             <div className="border border-slate-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  1. Statutory 3-Way Tax Reconciliations
+                  1. Statutory 3-Way Tax Reconciliations ({reviewData.auditCaseId})
                 </h3>
                 <span className="text-2xs font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
                   VERIFIED BY QA
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-800 block text-2xs">VAT Turnover vs CIT Gross Sales</span>
-                  <div className="mt-1 font-mono text-2xs text-slate-600 space-y-0.5">
-                    <div>VAT Returns: $12,450,000</div>
-                    <div>CIT Gross: $14,270,000</div>
-                    <div className="text-rose-600 font-bold">Variance: -$1,820,000</div>
-                  </div>
+              {Array.isArray(underlyingCase?.reconciliations) && underlyingCase.reconciliations.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  {underlyingCase.reconciliations.map((rec: any, idx: number) => (
+                    <div key={rec.id || idx} className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <span className="font-bold text-slate-800 block text-2xs">{rec.category || rec.title || `Reconciliation #${idx + 1}`}</span>
+                      <div className="mt-1 font-mono text-2xs text-slate-600 space-y-0.5">
+                        <div>{rec.sourceALabel || 'Source A'}: ETB {Number(rec.sourceAAmount || 0).toLocaleString()}</div>
+                        <div>{rec.sourceBLabel || 'Source B'}: ETB {Number(rec.sourceBAmount || 0).toLocaleString()}</div>
+                        <div className={Number(rec.variance || 0) === 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+                          Variance: ETB {Number(rec.variance || 0).toLocaleString()} {Number(rec.variance || 0) === 0 ? '(Reconciled)' : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                    <span className="font-bold text-slate-800 block text-2xs">VAT Turnover vs CIT Gross Sales</span>
+                    <div className="mt-1 font-mono text-2xs text-slate-600 space-y-0.5">
+                      <div>VAT Returns: ETB 12,450,000</div>
+                      <div>CIT Gross: ETB 14,270,000</div>
+                      <div className="text-rose-600 font-bold">Variance: -ETB 1,820,000</div>
+                    </div>
+                  </div>
 
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-800 block text-2xs">PAYE Salaries vs P&L Payroll</span>
-                  <div className="mt-1 font-mono text-2xs text-slate-600 space-y-0.5">
-                    <div>P&L Expense: $3,210,000</div>
-                    <div>PAYE Returns: $3,210,000</div>
-                    <div className="text-emerald-600 font-bold">Variance: $0 (Reconciled)</div>
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                    <span className="font-bold text-slate-800 block text-2xs">PAYE Salaries vs P&L Payroll</span>
+                    <div className="mt-1 font-mono text-2xs text-slate-600 space-y-0.5">
+                      <div>P&L Expense: ETB 3,210,000</div>
+                      <div>PAYE Returns: ETB 3,210,000</div>
+                      <div className="text-emerald-600 font-bold">Variance: ETB 0 (Reconciled)</div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="font-bold text-slate-800 block text-2xs">ASYCUDA Customs CIF vs Purchases</span>
-                  <div className="mt-1 font-mono text-2xs text-slate-600 space-y-0.5">
-                    <div>Customs CIF: $8,940,000</div>
-                    <div>GL Imports: $6,690,000</div>
-                    <div className="text-rose-600 font-bold">Variance: -$2,250,000</div>
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                    <span className="font-bold text-slate-800 block text-2xs">ASYCUDA Customs CIF vs Purchases</span>
+                    <div className="mt-1 font-mono text-2xs text-slate-600 space-y-0.5">
+                      <div>Customs CIF: ETB 8,940,000</div>
+                      <div>GL Imports: ETB 6,690,000</div>
+                      <div className="text-rose-600 font-bold">Variance: -ETB 2,250,000</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Substantive Procedures Performed by Audit Team */}
             <div className="border border-slate-200 rounded-xl p-4 space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                2. Audit Procedures Completed by Lead Auditor Jane Doe
+                2. Audit Procedures Completed by Lead Auditor {reviewData.leadAuditor}
               </h3>
-              <div className="divide-y divide-slate-100 text-xs">
-                <div className="py-2.5 flex items-center justify-between">
-                  <div>
-                    <strong className="text-slate-900 block">AP-01: Revenue Completeness & Invoicing Cut-off</strong>
-                    <span className="text-2xs text-slate-500">Tested 120 sales transactions against warehouse gate passes.</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">COMPLETED</span>
+              {Array.isArray(underlyingCase?.procedures) && underlyingCase.procedures.length > 0 ? (
+                <div className="divide-y divide-slate-100 text-xs">
+                  {underlyingCase.procedures.map((proc: any, idx: number) => (
+                    <div key={proc.id || idx} className="py-2.5 flex items-center justify-between">
+                      <div>
+                        <strong className="text-slate-900 block">{proc.code || `AP-0${idx + 1}`}: {proc.title || proc.description}</strong>
+                        <span className="text-2xs text-slate-500">{proc.notes || proc.methodology || proc.category || 'Substantive field audit procedure verified.'}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        proc.status === 'Completed' || proc.completed ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {(proc.status || (proc.completed ? 'COMPLETED' : 'IN PROGRESS')).toUpperCase()}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <div className="py-2.5 flex items-center justify-between">
-                  <div>
-                    <strong className="text-slate-900 block">AP-02: Inventory Shrinkage & Normal Loss Assessment</strong>
-                    <span className="text-2xs text-slate-500">Examined 4.2% shrinkage claims against industry 1.5% norm.</span>
+              ) : (
+                <div className="divide-y divide-slate-100 text-xs">
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div>
+                      <strong className="text-slate-900 block">AP-01: Revenue Completeness & Invoicing Cut-off</strong>
+                      <span className="text-2xs text-slate-500">Tested 120 sales transactions against warehouse gate passes.</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">COMPLETED</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">COMPLETED</span>
-                </div>
-                <div className="py-2.5 flex items-center justify-between">
-                  <div>
-                    <strong className="text-slate-900 block">AP-03: Cross-Border Transfer Pricing & Management Toll Fees</strong>
-                    <span className="text-2xs text-slate-500">Benchmarking search evaluated; flagged outdated 2021 study.</span>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div>
+                      <strong className="text-slate-900 block">AP-02: Inventory Shrinkage & Normal Loss Assessment</strong>
+                      <span className="text-2xs text-slate-500">Examined 4.2% shrinkage claims against industry 1.5% norm.</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">COMPLETED</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">DEFICIENCY ISSUED</span>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div>
+                      <strong className="text-slate-900 block">AP-03: Cross-Border Transfer Pricing & Management Toll Fees</strong>
+                      <span className="text-2xs text-slate-500">Benchmarking search evaluated; flagged outdated 2021 study.</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">DEFICIENCY ISSUED</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}

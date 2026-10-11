@@ -290,6 +290,29 @@ public class BackofficeSecurityService {
         aliasToCanonicalId.put("system_admin", "sysadmin-01");
         aliasToCanonicalId.put("sysadmin-01@mor.gov.et", "sysadmin-01");
 
+        // Ensure Quality Assurance Directorate accounts and aliases are always registered
+        seedExtraAccount("qa.officer1", "u-qa-officer-1", "qa.officer1@mor.gov.et", "Rahel Tesfaye",
+                "QA_OFFICER", "QUALITY_ASSURANCE", "NATIONAL", "FEDERAL");
+        aliasToCanonicalId.put("usr-qa-01", "qa.officer1");
+        aliasToCanonicalId.put("qa_officer", "qa.officer1");
+        aliasToCanonicalId.put("rahel.tesfaye@mor.gov.et", "qa.officer1");
+
+        seedExtraAccount("qa.officer2", "u-qa-officer-2", "qa.officer2@mor.gov.et", "Biniyam Girma",
+                "QA_OFFICER", "QUALITY_ASSURANCE", "NATIONAL", "FEDERAL");
+        aliasToCanonicalId.put("biniyam.girma@mor.gov.et", "qa.officer2");
+
+        seedExtraAccount("qa.tl1", "u-qa-tl-1", "qa.tl1@mor.gov.et", "Tewodros Mekonnen",
+                "QA_TEAM_LEADER", "QUALITY_ASSURANCE", "NATIONAL", "FEDERAL");
+        aliasToCanonicalId.put("usr-qa-tl-01", "qa.tl1");
+        aliasToCanonicalId.put("qa_team_leader", "qa.tl1");
+        aliasToCanonicalId.put("tewodros.mekonnen@mor.gov.et", "qa.tl1");
+
+        seedExtraAccount("qa.director", "u-qa-director-1", "qa.director@mor.gov.et", "Dr. Mesfin Alemayehu",
+                "QA_DIRECTOR", "QUALITY_ASSURANCE", "NATIONAL", "FEDERAL");
+        aliasToCanonicalId.put("usr-qa-dir-01", "qa.director");
+        aliasToCanonicalId.put("qa_director", "qa.director");
+        aliasToCanonicalId.put("mesfin.alemayehu@mor.gov.et", "qa.director");
+
         // Ensure special frontend seed users (from seed.js / userResolver.js) are registered
         seedExtraAccount("u-tc-fed1", "u-tc-fed1", "kassahun.bekele@mor.gov.et", "Kassahun Bekele", "TAX_CENTER_MANAGER", null, "TAX_CENTER", "federal-lto1");
         seedExtraAccount("u-tc-fed2", "u-tc-fed2", "tirhas.gebre@mor.gov.et", "Tirhas Gebre", "TAX_CENTER_MANAGER", null, "TAX_CENTER", "federal-lto2");

@@ -300,6 +300,9 @@ export function getRoleDisplayName(user) {
 
   const map = {
     system_admin:      'MOR System Administrator',
+    qa_officer:        'Senior QA Assurance Inspector',
+    qa_team_leader:    'QA Review Team Leader',
+    qa_director:       'Director of Audit Quality Assurance',
     planning_team:     'Audit Planning Team',
     audit_director:    'Audit Director',
     regional_director: 'Regional Director',
@@ -317,11 +320,29 @@ export function getNavigationSections(user) {
   const auditType = getEffectiveAuditType(user);
 
   if (role === 'team_leader') {
-    return TEAM_LEADER_NAV[auditType] || TEAM_LEADER_NAV.TRANSFER_PRICING;
+    const baseSections = TEAM_LEADER_NAV[auditType] || TEAM_LEADER_NAV.TRANSFER_PRICING;
+    return [
+      ...baseSections,
+      {
+        title: 'QUALITY ASSURANCE LIAISON',
+        items: [
+          { id: 'qa-portal', label: 'QA Compliance & Remediation', icon: ShieldAlert, badge: 'ISO 19011' }
+        ]
+      }
+    ];
   }
 
   if (role === 'auditor') {
-    return AUDITOR_NAV[auditType] || AUDITOR_NAV.TRANSFER_PRICING;
+    const baseSections = AUDITOR_NAV[auditType] || AUDITOR_NAV.TRANSFER_PRICING;
+    return [
+      ...baseSections,
+      {
+        title: 'QUALITY ASSURANCE LIAISON',
+        items: [
+          { id: 'qa-portal', label: 'QA Compliance & Remediation', icon: ShieldAlert, badge: 'ISO 19011' }
+        ]
+      }
+    ];
   }
 
   if (['committee', 'committee_chair', 'committee_member'].includes(role)) {
@@ -368,6 +389,53 @@ export function getNavigationSections(user) {
 }
 
 const NAV_SECTIONS = {
+  qa_officer: [
+    {
+      title: 'QA INSPECTION WORKSPACE',
+      items: [
+        { id: 'dashboard', label: 'ISO 19011 Quality Matrix', icon: Scale, badge: '7 Dims' },
+        { id: 'DEFICIENCIES', label: 'Deficiency Register', icon: ShieldAlert },
+        { id: 'AUDIT_CONTEXT', label: 'Underlying Audit Dossier', icon: FileText },
+        { id: 'WORKING_PAPERS', label: 'QA Recalculation & WPs', icon: Calculator },
+        { id: 'COMMUNICATION', label: 'Remediation Dialogue', icon: Users },
+        { id: 'REPORT', label: 'QA Review Report', icon: FileCheck }
+      ]
+    },
+    {
+      title: 'GOVERNANCE',
+      items: [
+        { id: 'audit_trail', label: 'Governance Audit Trail', icon: CheckSquare }
+      ]
+    }
+  ],
+  qa_team_leader: [
+    {
+      title: 'SUPERVISORY QA REVIEW',
+      items: [
+        { id: 'dashboard', label: 'Technical Review Queue', icon: LayoutDashboard, badge: 'Level 4' }
+      ]
+    },
+    {
+      title: 'GOVERNANCE',
+      items: [
+        { id: 'audit_trail', label: 'Governance Audit Trail', icon: CheckSquare }
+      ]
+    }
+  ],
+  qa_director: [
+    {
+      title: 'EXECUTIVE QA GOVERNANCE',
+      items: [
+        { id: 'dashboard', label: 'Quality Assurance Portfolio', icon: LayoutDashboard, badge: 'Level 5' }
+      ]
+    },
+    {
+      title: 'GOVERNANCE',
+      items: [
+        { id: 'audit_trail', label: 'Governance Audit Trail', icon: CheckSquare }
+      ]
+    }
+  ],
   planning_team: [
     {
       title: 'OVERVIEW',
@@ -517,6 +585,9 @@ const NAV_SECTIONS = {
 
 const ROLE_LABELS = {
   system_admin:      'MOR System Administrator',
+  qa_officer:        'Senior QA Assurance Inspector',
+  qa_team_leader:    'QA Review Team Leader',
+  qa_director:       'Director of Audit Quality Assurance',
   planning_team:     'Audit Planning Team',
   audit_director:    'Audit Director',
   regional_director: 'Regional Director',

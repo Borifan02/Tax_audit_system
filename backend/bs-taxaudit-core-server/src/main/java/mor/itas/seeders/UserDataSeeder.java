@@ -58,6 +58,12 @@ public class UserDataSeeder implements CommandLineRunner {
         seedUser("00000000-0000-0000-0003-000000000001", "almaz.berhane", "almaz.berhane@mor.gov.et", "Almaz Berhane", "SENIOR_MANAGEMENT", null, "NATIONAL", null);
         seedUser("00000000-0000-0000-0003-000000000002", "workneh.wolde", "workneh.wolde@mor.gov.et", "Workneh Wolde", "SENIOR_MANAGEMENT", null, "NATIONAL", null);
 
+        // Quality Assurance Directorate (SOR FR-04.5 & ISO 19011)
+        seedUser("00000000-0000-0000-0009-000000000001", "qa.officer1", "qa.officer1@mor.gov.et", "Rahel Tesfaye", "QA_OFFICER", "quality_assurance", "NATIONAL", "FEDERAL");
+        seedUser("00000000-0000-0000-0009-000000000002", "qa.officer2", "qa.officer2@mor.gov.et", "Biniyam Girma", "QA_OFFICER", "quality_assurance", "NATIONAL", "FEDERAL");
+        seedUser("00000000-0000-0000-0009-000000000003", "qa.tl1", "qa.tl1@mor.gov.et", "Tewodros Mekonnen", "QA_TEAM_LEADER", "quality_assurance", "NATIONAL", "FEDERAL");
+        seedUser("00000000-0000-0000-0009-000000000004", "qa.director", "qa.director@mor.gov.et", "Dr. Mesfin Alemayehu", "QA_DIRECTOR", "quality_assurance", "NATIONAL", "FEDERAL");
+
         // Regional Directors (6)
         seedUser("00000000-0000-0000-0004-000000000001", "getnet.alemu", "getnet.alemu@mor.gov.et", "Getnet Alemu", "REGIONAL_DIRECTOR", null, "REGIONAL", "addis_ababa");
         seedUser("00000000-0000-0000-0004-000000000002", "tadesse.kebede", "tadesse.kebede@mor.gov.et", "Tadesse Kebede", "REGIONAL_DIRECTOR", null, "REGIONAL", "amhara");

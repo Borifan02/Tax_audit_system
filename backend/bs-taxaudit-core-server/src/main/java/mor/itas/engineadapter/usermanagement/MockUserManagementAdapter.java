@@ -84,6 +84,16 @@ public class MockUserManagementAdapter implements UserManagementPort {
         addUser("u-sm-02", "u-sm-02", "workneh.wolde@mor.gov.et",
                 "Workneh Wolde", "SENIOR_MANAGEMENT", null, "NATIONAL", "FEDERAL");
 
+        // ── Quality Assurance Directorate (ISO 19011 / SOR FR-04.5) ──
+        addUser("u-qa-officer-1", "qa.officer1", "qa.officer1@mor.gov.et",
+                "Rahel Tesfaye", "QA_OFFICER", "QUALITY_ASSURANCE", "NATIONAL", "FEDERAL");
+        addUser("u-qa-officer-2", "qa.officer2", "qa.officer2@mor.gov.et",
+                "Biniyam Girma", "QA_OFFICER", "QUALITY_ASSURANCE", "NATIONAL", "FEDERAL");
+        addUser("u-qa-tl-1", "qa.tl1", "qa.tl1@mor.gov.et",
+                "Tewodros Mekonnen", "QA_TEAM_LEADER", "QUALITY_ASSURANCE", "NATIONAL", "FEDERAL");
+        addUser("u-qa-director-1", "qa.director", "qa.director@mor.gov.et",
+                "Dr. Mesfin Alemayehu", "QA_DIRECTOR", "QUALITY_ASSURANCE", "NATIONAL", "FEDERAL");
+
         // ── Federal LTO-1 Joint Audit Personnel ──
         addUser("20000000-0000-0000-0099-000000000001", "fed.ja.chair", "fed.ja.chair@mor.gov.et",
                 "Dr. Solomon Desta", "COMMITTEE_CHAIR", "JOINT_AUDIT", "TAX_CENTER", "federal-lto1");

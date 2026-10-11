@@ -12,9 +12,9 @@ export function normalizeRole(role) {
   const r = role.toLowerCase().replace(/[\s-]+/g, '_');
   
   if (r === 'system_admin' || r === 'sysadmin' || r === 'sys_admin' || r === 'admin') return 'system_admin';
-  if (r.includes('qa_officer') || r === 'qa_officer') return 'qa_officer';
-  if (r.includes('qa_team_leader') || r === 'qa_team_leader' || r === 'qa.tl1') return 'qa_team_leader';
-  if (r.includes('qa_director') || r === 'qa_director' || r === 'qa.director') return 'qa_director';
+  if (r.includes('qa_officer') || r.includes('qa.officer') || r === 'qa_officer') return 'qa_officer';
+  if (r.includes('qa_team_leader') || r.includes('qa_tl') || r.includes('qa.tl') || r === 'qa_team_leader') return 'qa_team_leader';
+  if (r.includes('qa_director') || r.includes('qa_dir') || r.includes('qa.director') || r === 'qa_director') return 'qa_director';
 
   if (r.includes('plan')) return 'planning_team';
   if (r.includes('direct') && !r.includes('region')) return 'audit_director';
@@ -47,6 +47,7 @@ export function resolveRegion(loc) {
 export function resolveAuditType(str) {
   if (!str) return null;
   const s = str.toLowerCase();
+  if (s.includes('quality') || s.includes('qa')) return 'quality_assurance';
   if (s.includes('transfer') || s.includes('tp')) return 'transfer_pricing';
   if (s.includes('joint') || s.includes('.ja') || s.includes('-ja') || s.includes('ja_') || s.includes('_ja') || s === 'ja') return 'joint_audit';
   if (s.includes('desk')) return 'desk_audit';
@@ -99,6 +100,9 @@ export function mapBackendUserToProfile(u) {
   if (!u) return null;
   const roleMapping = {
     'SYSTEM_ADMIN': 'system_admin',
+    'QA_OFFICER': 'qa_officer',
+    'QA_TEAM_LEADER': 'qa_team_leader',
+    'QA_DIRECTOR': 'qa_director',
     'PLANNING_TEAM': 'planning_team',
     'NATIONAL_ADMIN': 'planning_team',
     'DIRECTOR': 'audit_director',
@@ -450,7 +454,16 @@ export function synthesizeUserFromPattern(identifier) {
 
   // Dynamic Role Heuristics
   let role = 'auditor';
-  if (cleanInput.includes('chair') || cleanInput.includes('chairperson')) {
+  if (cleanInput.includes('qa.director') || cleanInput.includes('qa_director') || cleanInput.includes('usr-qa-dir')) {
+    role = 'qa_director';
+    auditType = 'quality_assurance';
+  } else if (cleanInput.includes('qa.tl') || cleanInput.includes('qa_team_leader') || cleanInput.includes('u-qa-tl') || cleanInput.includes('usr-qa-tl')) {
+    role = 'qa_team_leader';
+    auditType = 'quality_assurance';
+  } else if (cleanInput.includes('qa.officer') || cleanInput.includes('qa_officer') || cleanInput.includes('u-qa-officer') || cleanInput.includes('usr-qa')) {
+    role = 'qa_officer';
+    auditType = 'quality_assurance';
+  } else if (cleanInput.includes('chair') || cleanInput.includes('chairperson')) {
     role = 'committee_chair';
     if (!auditType) auditType = 'joint_audit';
   } else if (cleanInput.includes('member') || cleanInput.includes('com')) {

@@ -175,10 +175,14 @@ export default function Login() {
             <div className="grid grid-cols-2 gap-1.5">
               {[
                 { label: '🛡️ System Admin', id: 'admin@mor.gov.et', sub: 'User & Security Admin' },
+                { label: '🏅 QA Officer', id: 'qa.officer1@mor.gov.et', sub: 'ISO 19011 QA Inspector' },
+                { label: '⭐ QA Team Leader', id: 'qa.tl1@mor.gov.et', sub: 'QA Supervisory Review' },
+                { label: '🏛️ QA Director', id: 'qa.director@mor.gov.et', sub: 'Executive QA Governance' },
                 { label: '🏢 LTO1 Manager', id: 'u-tcm-federal-lto1', sub: 'Federal LTO-1 Manager' },
                 { label: '📋 Desk TL (LTO1)', id: 'u-tl-federal-lto1-desk-1', sub: 'Desk Audit Team Leader' },
                 { label: '🔍 Desk Auditor', id: 'u-aud-federal-lto1-desk-1-1', sub: 'Desk Audit Execution' },
                 { label: '📊 Comp Auditor', id: 'u-aud-federal-lto1-comp-1-1', sub: 'Comprehensive Audit' },
+                { label: '⚖️ Joint TL (LTO2)', id: 'fed2.ja.tl@mor.gov.et', sub: 'Joint Audit Team Leader' },
                 { label: '⚖️ Joint Auditor', id: 'fed.ja.auditor1@mor.gov.et', sub: 'Joint Audit Workspace' },
               ].map((preset) => (
                 <button

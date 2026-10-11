@@ -1,0 +1,593 @@
+{
+  "executedAt": "2026-10-11T19:13:30Z",
+  "targetEnvironment": "http://localhost:8080",
+  "totalControllersInCollection": 42,
+  "totalEndpointsInCollection": 406,
+  "executedTestCases": 41,
+  "passed": 41,
+  "failed": 0,
+  "passRatePercent": 100.0,
+  "averageResponseTimeMs": 135.8,
+  "results": [
+    {
+      "testId": "TC-AUTH-001",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Functional / Positive",
+      "name": "TC-AUTH-001: Login as System Administrator (admin@mor.gov.et)",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/auth/login",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 271.8,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AUTH-002",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Security / Negative",
+      "name": "TC-AUTH-002: Login with Invalid Password (401 Unauthorized & Remaining Attempts)",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/auth/login",
+      "expectedStatus": [
+        401
+      ],
+      "actualStatus": 401,
+      "responseTimeMs": 329.47,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AUTH-003",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Security / Negative",
+      "name": "TC-AUTH-003: Login with Non-Existent User Account (401 Unauthorized)",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/auth/login",
+      "expectedStatus": [
+        401
+      ],
+      "actualStatus": 401,
+      "responseTimeMs": 3.76,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AUTH-004",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Functional / Positive",
+      "name": "TC-AUTH-004: Login as QA Officer (Rahel Tesfaye - QA_OFFICER)",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/auth/login",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 392.71,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AUTH-005",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Functional / Positive",
+      "name": "TC-AUTH-005: Login as QA Team Leader (Tewodros Mekonnen - QA_TEAM_LEADER)",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/auth/login",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 357.24,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AUTH-006",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Functional / Positive",
+      "name": "TC-AUTH-006: Login as QA Director (Dr. Mesfin Alemayehu - QA_DIRECTOR)",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/auth/login",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 372.79,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AUTH-007",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Security / Positive",
+      "name": "TC-AUTH-007: Get Security Audit Log Events (System Admin Console)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/auth/admin/security-logs",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 5.96,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AUTH-008",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Functional / Positive",
+      "name": "TC-AUTH-008: List All Security-Managed Users in System Admin Directory",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/auth/admin/users",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 36.18,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AUTH-009",
+      "module": "01. Authentication, Security & RBAC",
+      "type": "Functional / Positive",
+      "name": "TC-AUTH-009: Get Organizational Hierarchy Regions (/api/v1/regions)",
+      "method": "GET",
+      "endpoint": "/api/v1/regions",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 6.25,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AP-001",
+      "module": "02. Annual Audit Planning & Risk Engine",
+      "type": "Functional / Positive",
+      "name": "TC-AP-001: Fetch All Annual Audit Plans",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/plans",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 25.06,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AP-002",
+      "module": "02. Annual Audit Planning & Risk Engine",
+      "type": "Functional / Positive",
+      "name": "TC-AP-002: Fetch Specific Annual Audit Plan by ID",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/plans/cea083ef-4bb1-4fc1-a0f0-c93a3d71bbb0",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 13.64,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AP-003",
+      "module": "02. Annual Audit Planning & Risk Engine",
+      "type": "Negative / Boundary",
+      "name": "TC-AP-003: Fetch Non-Existent Annual Plan UUID (400/404 Error Handling)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/plans/00000000-0000-0000-0000-999999999999",
+      "expectedStatus": [
+        400,
+        404
+      ],
+      "actualStatus": 400,
+      "responseTimeMs": 6.57,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AP-004",
+      "module": "02. Annual Audit Planning & Risk Engine",
+      "type": "Functional / Positive",
+      "name": "TC-AP-004: Get Planning Configuration Parameters (Audit Types & Weights)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/config/planning",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 5.11,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AP-005",
+      "module": "02. Annual Audit Planning & Risk Engine",
+      "type": "Functional / Positive",
+      "name": "TC-AP-005: Get Director Dashboard Pending Review Plans",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/plans/pending-director-review",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 5.33,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AP-006",
+      "module": "02. Annual Audit Planning & Risk Engine",
+      "type": "Functional / Positive",
+      "name": "TC-AP-006: Get Regional Deployed Plans (Addis Ababa - AA)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/regional/plans?regionCode=AA",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 20.47,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-AP-007",
+      "module": "02. Annual Audit Planning & Risk Engine",
+      "type": "Functional / Positive",
+      "name": "TC-AP-007: Get Tax Center Plan Allocations (federal-lto1)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/tax-center/allocations?taxCenterId=federal-lto1",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 31.73,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-CM-001",
+      "module": "03. Case Management, Assignment & Handoff",
+      "type": "Functional / Positive",
+      "name": "TC-CM-001: List Audit Cases for Tax Center (federal-lto1)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/cases?taxCenter=federal-lto1",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 58.51,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-CM-002",
+      "module": "03. Case Management, Assignment & Handoff",
+      "type": "Functional / Positive",
+      "name": "TC-CM-002: Get Single Audit Case Details by Case UUID",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/cases/c0000000-0000-0000-0000-000000000101",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 8.38,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-CM-003",
+      "module": "03. Case Management, Assignment & Handoff",
+      "type": "Functional / Positive",
+      "name": "TC-CM-003: Get Team Leader Dashboard & Assigned Cases",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/team-leader/dashboard?teamLeaderId=comp.tl.lto1",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 19.06,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-CM-004",
+      "module": "03. Case Management, Assignment & Handoff",
+      "type": "Functional / Positive",
+      "name": "TC-CM-004: Get Auditor Dashboard & Active Workload",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/auditor/dashboard?auditorId=comp.auditor1.lto1",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 7.25,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-CM-005",
+      "module": "03. Case Management, Assignment & Handoff",
+      "type": "Functional / Positive",
+      "name": "TC-CM-005: Get Tax Center Taxpayers Pool (federal-lto1)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/tax-center/taxpayers?taxCenterCode=federal-lto1&page=0&size=20",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 88.92,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-JAC-001",
+      "module": "04. Joint Audit Committee (JAC) & Joint Audit Execution",
+      "type": "Functional / Positive",
+      "name": "TC-JAC-001: Get JAC Committee Dashboard Metrics (federal-lto1)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/committee/dashboard?taxCenter=federal-lto1",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 40.95,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-JAC-002",
+      "module": "04. Joint Audit Committee (JAC) & Joint Audit Execution",
+      "type": "Functional / Positive",
+      "name": "TC-JAC-002: List JAC Committee Cases (Paginated)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/committee/cases?page=0&size=25&taxCenter=federal-lto1",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 30.93,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-JAC-003",
+      "module": "04. Joint Audit Committee (JAC) & Joint Audit Execution",
+      "type": "Functional / Positive",
+      "name": "TC-JAC-003: Search Available Auditors for Committee Nomination",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/committee/auditors/search?page=0&size=25&taxCenter=federal-lto1",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 7.05,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-JAC-004",
+      "module": "04. Joint Audit Committee (JAC) & Joint Audit Execution",
+      "type": "Functional / Positive",
+      "name": "TC-JAC-004: List JAC Committee Deliberation Sessions",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ap/committee/sessions?taxCenter=federal-lto1",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 5.86,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-DA-001",
+      "module": "05. Desk Audit Execution (FR-04.2)",
+      "type": "Functional / Positive",
+      "name": "TC-DA-001: Get Desk Audit Full Case Workspace Snapshot (da_case_id)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/da/cases/fbca61b0-5cc5-4783-9900-28c06c6e47eb",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 438.55,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-DA-002",
+      "module": "05. Desk Audit Execution (FR-04.2)",
+      "type": "Negative / Type Guard",
+      "name": "TC-DA-002: Reject Non-Desk Audit Case on Desk Audit Endpoint (Type Guard)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/da/cases/c0000000-0000-0000-0000-000000000101",
+      "expectedStatus": [
+        400,
+        422,
+        500
+      ],
+      "actualStatus": 500,
+      "responseTimeMs": 7.61,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-CA-001",
+      "module": "06. Comprehensive Audit & CAAT Engine (FR-04.4)",
+      "type": "Functional / Positive",
+      "name": "TC-CA-001: List All Comprehensive Audit Cases",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ca/cases",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 375.87,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-CA-002",
+      "module": "06. Comprehensive Audit & CAAT Engine (FR-04.4)",
+      "type": "Functional / Positive",
+      "name": "TC-CA-002: Get Comprehensive Audit Full Case Snapshot (Procedures, CAAT, Reconciliations)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ca/cases/c0000000-0000-0000-0000-000000000101",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 21.15,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-CA-003",
+      "module": "06. Comprehensive Audit & CAAT Engine (FR-04.4)",
+      "type": "Negative / Type Guard",
+      "name": "TC-CA-003: Reject Non-Comprehensive Case on CA Endpoint (Type Guard)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/ca/cases/fbca61b0-5cc5-4783-9900-28c06c6e47eb",
+      "expectedStatus": [
+        400,
+        422,
+        500
+      ],
+      "actualStatus": 500,
+      "responseTimeMs": 8.86,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-TP-001",
+      "module": "07. Transfer Pricing & Issue Audit Execution",
+      "type": "Functional / Positive",
+      "name": "TC-TP-001: Get Transfer Pricing Execution Full State (tp_case_id)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/tp/cases/9e8f8c2d-55a1-439b-9302-32510b69ae9c/full-state",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 454.19,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-TP-002",
+      "module": "07. Transfer Pricing & Issue Audit Execution",
+      "type": "Functional / Positive",
+      "name": "TC-TP-002: Get Transfer Pricing Strict Phase Gates (tp_case_id)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/tp/cases/9e8f8c2d-55a1-439b-9302-32510b69ae9c/phase-gates",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 456.87,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-ISS-001",
+      "module": "07. Transfer Pricing & Issue Audit Execution",
+      "type": "Functional / Positive",
+      "name": "TC-ISS-001: Get Issue Audit Execution Details (issue_case_id)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/issue/cases/950fe668-a671-47c1-8474-8a9804e9ed7f",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 16.82,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-QA-001",
+      "module": "08. Quality Assurance (QA) & ISO 19011 Compliance",
+      "type": "Functional / Positive",
+      "name": "TC-QA-001: List All Sampled Quality Assurance Review Cases",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/qa/cases",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 184.84,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-QA-002",
+      "module": "08. Quality Assurance (QA) & ISO 19011 Compliance",
+      "type": "Functional / Positive",
+      "name": "TC-QA-002: Get QA Dashboard & Compliance Statistics",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/qa/cases/stats",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 23.33,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-QA-003",
+      "module": "08. Quality Assurance (QA) & ISO 19011 Compliance",
+      "type": "Functional / Positive",
+      "name": "TC-QA-003: Get Specific QA Review Dossier with 7 ISO-19011 Dimensions (QA-REV-2026-001)",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/qa/cases/QA-REV-2026-001",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 35.31,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-QA-004",
+      "module": "08. Quality Assurance (QA) & ISO 19011 Compliance",
+      "type": "Integration / Positive",
+      "name": "TC-QA-004: Update ISO-19011 Dimension Score & Recalculate Weighted Rating (DIM-01)",
+      "method": "PUT",
+      "endpoint": "/api/v1/backoffice/qa/cases/QA-REV-2026-001/dimensions/DIM-01",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 218.48,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-QA-005",
+      "module": "08. Quality Assurance (QA) & ISO 19011 Compliance",
+      "type": "Integration / Positive",
+      "name": "TC-QA-005: Create Statutory QA Deficiency Finding on QA Case",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/qa/cases/QA-REV-2026-001/deficiencies",
+      "expectedStatus": [
+        200,
+        201
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 431.49,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-QA-006",
+      "module": "08. Quality Assurance (QA) & ISO 19011 Compliance",
+      "type": "Integration / Positive",
+      "name": "TC-QA-006: Generate Formal QA Review Report (qa_reports)",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/qa/cases/QA-REV-2026-001/report",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 418.48,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-QA-007",
+      "module": "08. Quality Assurance (QA) & ISO 19011 Compliance",
+      "type": "Integration / Positive",
+      "name": "TC-QA-007: Fetch Underlying Field Audit Case Dossier from QA Inspector Workspace",
+      "method": "GET",
+      "endpoint": "/api/v1/backoffice/qa/cases/underlying/c0000000-0000-0000-0000-000000000101",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 46.84,
+      "status": "PASS"
+    },
+    {
+      "testId": "TC-QA-008",
+      "module": "08. Quality Assurance (QA) & ISO 19011 Compliance",
+      "type": "Integration / Workflow",
+      "name": "TC-QA-008: Execute QA Workflow Transition (SUBMIT_TO_TL)",
+      "method": "POST",
+      "endpoint": "/api/v1/backoffice/qa/cases/QA-REV-2026-001/workflow",
+      "expectedStatus": [
+        200
+      ],
+      "actualStatus": 200,
+      "responseTimeMs": 278.28,
+      "status": "PASS"
+    }
+  ]
+}

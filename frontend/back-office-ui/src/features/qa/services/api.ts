@@ -63,9 +63,14 @@ export function getCurrentUserId(): string {
 }
 
 function getRequestHeaders(additional?: Record<string, string>): Record<string, string> {
+  const sessionUserId = typeof window !== 'undefined' ? sessionStorage.getItem('userId') : null;
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('mor_jwt_token') : null;
+  const actorId = sessionUserId || currentUserId;
   return {
     'Content-Type': 'application/json',
-    'X-User-Id': currentUserId,
+    'X-User-Id': actorId,
+    'X-Actor-Id': actorId,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(additional || {})
   };
 }
@@ -382,7 +387,9 @@ export const itasApi = {
   // Get full case data
   async getCaseData(caseId: string): Promise<CaseFullData> {
     try {
-      const res = await fetch(`/api/cases/${caseId}`);
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/underlying/${encodeURIComponent(caseId)}`), {
+        headers: getRequestHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         saveLocalCaseData(caseId, data);
@@ -1023,16 +1030,26 @@ export const itasApi = {
 
   async getQACases(params?: { all?: boolean }): Promise<any[]> {
     try {
-      const endpoint = params?.all ? '/qa/cases?all=true' : '/qa/cases';
+      const endpoint = params?.all ? '/api/v1/backoffice/qa/cases?all=true' : '/api/v1/backoffice/qa/cases';
       const res = await fetch(buildUrl(endpoint), { headers: getRequestHeaders() });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          list.forEach((item: any) => {
+            if (item && item.id) {
+              itasApi._saveLocalQACase(item.id, item);
+            }
+          });
+          return list;
+        }
+      }
     } catch {}
     return Object.values(INITIAL_QA_CASES);
   },
 
   async getQACase(id: string): Promise<QACaseReview> {
     try {
-      const res = await fetch(buildUrl(`/qa/cases/${id}`), { headers: getRequestHeaders() });
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/${encodeURIComponent(id)}`), { headers: getRequestHeaders() });
       if (res.ok) {
         const data = await res.json();
         itasApi._saveLocalQACase(id, data);
@@ -1048,12 +1065,16 @@ export const itasApi = {
     itasApi._saveLocalQACase(id, current);
 
     try {
-      const res = await fetch(buildUrl(`/qa/cases/${id}`), {
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/${encodeURIComponent(id)}`), {
         method: 'PUT',
         headers: getRequestHeaders(),
         body: JSON.stringify(updates)
       });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        const data = await res.json();
+        itasApi._saveLocalQACase(id, data);
+        return data;
+      }
     } catch {}
     return current;
   },
@@ -1076,7 +1097,7 @@ export const itasApi = {
     itasApi._saveLocalQACase(caseId, current);
 
     try {
-      const res = await fetch(buildUrl(`/qa/cases/${caseId}/dimensions/${dimId}`), {
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/${encodeURIComponent(caseId)}/dimensions/${encodeURIComponent(dimId)}`), {
         method: 'PUT',
         headers: getRequestHeaders(),
         body: JSON.stringify(updates)
@@ -1115,7 +1136,7 @@ export const itasApi = {
     itasApi._saveLocalQACase(caseId, current);
 
     try {
-      const res = await fetch(buildUrl(`/qa/cases/${caseId}/deficiencies`), {
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/${encodeURIComponent(caseId)}/deficiencies`), {
         method: 'POST',
         headers: getRequestHeaders(),
         body: JSON.stringify(deficiency)
@@ -1148,7 +1169,7 @@ export const itasApi = {
     itasApi._saveLocalQACase(caseId, current);
 
     try {
-      const res = await fetch(buildUrl(`/qa/cases/${caseId}/deficiencies/${defId}`), {
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/${encodeURIComponent(caseId)}/deficiencies/${encodeURIComponent(defId)}`), {
         method: 'PUT',
         headers: getRequestHeaders(),
         body: JSON.stringify(updates)
@@ -1169,7 +1190,7 @@ export const itasApi = {
     itasApi._saveLocalQACase(caseId, current);
 
     try {
-      const res = await fetch(buildUrl(`/qa/cases/${caseId}/deficiencies/${defId}`), {
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/${encodeURIComponent(caseId)}/deficiencies/${encodeURIComponent(defId)}`), {
         method: 'DELETE',
         headers: getRequestHeaders()
       });
@@ -1184,18 +1205,19 @@ export const itasApi = {
     payload: { action: string; comment?: string; statutoryOrder?: any }
   ): Promise<{ success: boolean; status: string; review?: QACaseReview; error?: string }> {
     let current = itasApi._getLocalQACase(caseId);
-    
-    let backendAction = payload.action;
-    if (payload.action === 'SUBMIT_TO_TL') backendAction = 'SUBMIT_FOR_REVIEW';
-    if (payload.action === 'RETURN_TO_OFFICER' || payload.action === 'ISSUE_DEFICIENCY_NOTICE') backendAction = 'RETURN';
-    if (payload.action === 'RECOMMEND_FOR_DIRECTOR_SIGNOFF') backendAction = 'ENDORSE';
 
     // Optimistic UI update for information exchange
-    if (backendAction === 'SUBMIT_FOR_REVIEW') {
+    if (payload.action === 'SUBMIT_TO_TL' || payload.action === 'SUBMIT_FOR_REVIEW' || payload.action === 'SUBMIT_AUDIT_RESPONSE') {
       current.status = 'PENDING_TL_REVIEW';
-    } else if (backendAction === 'ENDORSE') {
+    } else if (payload.action === 'RECOMMEND_FOR_DIRECTOR_SIGNOFF') {
+      current.status = 'PENDING_DIRECTOR_SIGNOFF';
+    } else if (payload.action === 'ISSUE_DEFICIENCY_NOTICE') {
+      current.status = 'DEFICIENCY_ISSUED';
+    } else if (payload.action === 'DIRECTOR_CERTIFY_COMPLIANT' || payload.action === 'ENDORSE') {
       current.status = 'PASSED_COMPLIANT';
-    } else if (backendAction === 'RETURN') {
+    } else if (payload.action === 'DIRECTOR_ORDER_REAUDIT') {
+      current.status = 'REJECTED_REAUDIT_MANDATED';
+    } else if (payload.action === 'RETURN_TO_OFFICER' || payload.action === 'RETURN') {
       current.status = 'RETURNED_TO_OFFICER';
       current.qaTeamLeaderComment = payload.comment;
       current.qaTeamLeaderDecisionDate = new Date().toISOString();
@@ -1203,13 +1225,16 @@ export const itasApi = {
     itasApi._saveLocalQACase(caseId, current);
 
     try {
-      const res = await fetch(buildUrl(`/qa/cases/${caseId}/workflow`), {
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/${encodeURIComponent(caseId)}/workflow`), {
         method: 'POST',
         headers: getRequestHeaders(),
-        body: JSON.stringify({ ...payload, action: backendAction })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();
+        if (data?.review) {
+          itasApi._saveLocalQACase(caseId, data.review);
+        }
         return data;
       }
     } catch (err: any) {
@@ -1220,7 +1245,7 @@ export const itasApi = {
 
   async generateQAReport(caseId: string, payload: Partial<QAReport>): Promise<QAReport> {
     try {
-      const res = await fetch(buildUrl(`/qa/cases/${caseId}/report`), {
+      const res = await fetch(buildUrl(`/api/v1/backoffice/qa/cases/${encodeURIComponent(caseId)}/report`), {
         method: 'POST',
         headers: getRequestHeaders(),
         body: JSON.stringify(payload)
@@ -1253,7 +1278,7 @@ export const itasApi = {
     pendingTLReviews: number;
   }> {
     try {
-      const res = await fetch(buildUrl('/qa/stats'), { headers: getRequestHeaders() });
+      const res = await fetch(buildUrl('/api/v1/backoffice/qa/cases/stats'), { headers: getRequestHeaders() });
       if (res.ok) return await res.json();
     } catch {}
     return {

@@ -19,8 +19,12 @@ public class QaReportResponse {
     private Integer totalWeightedScore;
     private Integer criticalDeficienciesCount;
     private Integer majorDeficienciesCount;
-    private String keyStrengths;
-    private String systemicVulnerabilities;
+    private List<String> keyStrengths;
+    private List<String> systemicVulnerabilities;
     private String recommendationsForDirector;
-    private String mandatoryCorrectiveActions;
+    private List<String> mandatoryCorrectiveActions;
+    private String leadQAOfficerSignature;
+    private String qaTeamLeaderSignature;
+    private String directorApprovalSignature;
+    private String signedDate;
 }

@@ -135,6 +135,7 @@ const PAGE_TITLES = {
     dashboard:   { title: 'Team Leader Dashboard',  subtitle: 'Assign cases and supervise audit team' },
     cases:       { title: 'Assigned Cases',         subtitle: 'Cases under your supervisory team' },
     'tp-tasks':  { title: 'TP Workflow Tasks',      subtitle: 'Review gates and pending supervisory actions' },
+    'qa-portal': { title: 'Audit Team QA Compliance Portal', subtitle: 'Respond to Quality Assurance deficiency notices and submit remediation working papers' },
     audit_trail: { title: 'Governance Audit Trail', subtitle: 'Immutable compliance & statutory governance audit log' },
     'audit-trail': { title: 'Governance Audit Trail', subtitle: 'Immutable compliance & statutory governance audit log' },
     ...ALL_AUDIT_PHASE_TITLES,
@@ -145,9 +146,31 @@ const PAGE_TITLES = {
     'ja-workspace': { title: 'Joint Audit Workspace', subtitle: 'Execute 10-step statutory joint audit workflow and inter-agency verification' },
     'da-workspace': { title: 'Desk Audit Workspace', subtitle: 'Execute desk audit procedures and evidence' },
     'ca-workspace': { title: 'Comprehensive Audit Workspace', subtitle: 'Execute comprehensive audit procedures and multi-tax examination' },
+    'qa-portal': { title: 'Audit Team QA Compliance Portal', subtitle: 'Respond to Quality Assurance deficiency notices and submit remediation working papers' },
     audit_trail: { title: 'Governance Audit Trail', subtitle: 'Immutable compliance & statutory governance audit log' },
     'audit-trail': { title: 'Governance Audit Trail', subtitle: 'Immutable compliance & statutory governance audit log' },
     ...ALL_AUDIT_PHASE_TITLES,
+  },
+  qa_officer: {
+    dashboard:      { title: 'Quality Assurance Inspection Workspace', subtitle: 'ISO 19011 7-Dimension Audit Quality Verification & Scoring (SOR FR-04.5)' },
+    DIMENSIONS:     { title: 'ISO 19011 Quality Matrix',               subtitle: 'Evaluate and score 7 mandatory audit quality dimensions' },
+    DEFICIENCIES:   { title: 'Quality Deficiency Register',            subtitle: 'Log substantive defects, statutory breaches, and corrective action mandates' },
+    AUDIT_CONTEXT:  { title: 'Underlying Audit File Dossier',          subtitle: 'Inspect underlying audit working papers, 3-way reconciliations, and findings' },
+    WORKING_PAPERS: { title: 'QA Independent Recalculation & WPs',     subtitle: 'Statistical sample size verification and independent tax recalculation' },
+    COMMUNICATION:  { title: 'Inter-Role Remediation Dialogue',        subtitle: 'Official exchange between QA Directorate and Field Audit Team' },
+    REPORT:         { title: 'Formal QA Review Report',                subtitle: 'ISO 19011 Quality Assurance Inspection Report & Certification' },
+    audit_trail:    { title: 'Governance Audit Trail',                 subtitle: 'Immutable compliance & statutory governance audit log' },
+    'audit-trail':  { title: 'Governance Audit Trail',                 subtitle: 'Immutable compliance & statutory governance audit log' },
+  },
+  qa_team_leader: {
+    dashboard:      { title: 'QA Supervisory & Technical Review Portal', subtitle: 'Level 4 Technical Review, Deficiency Notice Issuance & Director Escalation' },
+    audit_trail:    { title: 'Governance Audit Trail',                   subtitle: 'Immutable compliance & statutory governance audit log' },
+    'audit-trail':  { title: 'Governance Audit Trail',                   subtitle: 'Immutable compliance & statutory governance audit log' },
+  },
+  qa_director: {
+    dashboard:      { title: 'Executive Quality Assurance Governance', subtitle: 'Level 5 National Quality Index, Statutory Certification & Re-Audit Mandates' },
+    audit_trail:    { title: 'Governance Audit Trail',                 subtitle: 'Immutable compliance & statutory governance audit log' },
+    'audit-trail':  { title: 'Governance Audit Trail',                 subtitle: 'Immutable compliance & statutory governance audit log' },
   },
   committee: {
     dashboard:      { title: 'Committee Dashboard',       subtitle: 'Review and approve audit committee matters' },
@@ -273,8 +296,8 @@ function RoleRouter({ user, view, onNavigate }) {
     return <TaxCenterDashboard view={view} onNavigate={onNavigate} />;
   }
   
-  if (role === 'qa_officer' || role === 'qa_team_leader' || role === 'qa_director' || role === 'QA_OFFICER' || role === 'QA_TEAM_LEADER' || role === 'QA_DIRECTOR') {
-    return <QAWorkspaceManager />;
+  if (view === 'qa-portal' || role === 'qa_officer' || role === 'qa_team_leader' || role === 'qa_director' || role === 'QA_OFFICER' || role === 'QA_TEAM_LEADER' || role === 'QA_DIRECTOR') {
+    return <QAWorkspaceManager view={view} onNavigate={onNavigate} />;
   }
 
   if (role === 'team_leader') {
