@@ -45,28 +45,28 @@ export const StepExitConferenceAssessment: React.FC<StepExitConferenceAssessment
   const [activeTab, setActiveTab] = useState<'exitConference' | 'assessmentNotice'>('exitConference');
 
   // Exit conference local state
-  const [scheduledDate, setScheduledDate] = useState(exitConference.scheduledDate);
-  const [time, setTime] = useState(exitConference.time);
-  const [venue, setVenue] = useState(exitConference.venue);
-  const [discussionNotes, setDiscussionNotes] = useState(exitConference.discussionNotes);
-  const [taxpayerResponseNotes, setTaxpayerResponseNotes] = useState(exitConference.taxpayerResponseNotes);
-  const [signedByTaxpayer, setSignedByTaxpayer] = useState(exitConference.signedByTaxpayer);
-  const [attendanceConfirmed, setAttendanceConfirmed] = useState(exitConference.attendanceConfirmed);
-  const [status, setStatus] = useState(exitConference.status);
-  const [agendaItems, setAgendaItems] = useState<string[]>(exitConference.agendaItems || []);
+  const [scheduledDate, setScheduledDate] = useState(exitConference?.scheduledDate || '');
+  const [time, setTime] = useState(exitConference?.time || '02:00 PM');
+  const [venue, setVenue] = useState(exitConference?.venue || '');
+  const [discussionNotes, setDiscussionNotes] = useState(exitConference?.discussionNotes || '');
+  const [taxpayerResponseNotes, setTaxpayerResponseNotes] = useState(exitConference?.taxpayerResponseNotes || '');
+  const [signedByTaxpayer, setSignedByTaxpayer] = useState(Boolean(exitConference?.signedByTaxpayer));
+  const [attendanceConfirmed, setAttendanceConfirmed] = useState(Boolean(exitConference?.attendanceConfirmed));
+  const [status, setStatus] = useState(exitConference?.status || 'SCHEDULED');
+  const [agendaItems, setAgendaItems] = useState<string[]>(exitConference?.agendaItems || []);
   const [newAgendaItem, setNewAgendaItem] = useState('');
   const [isSavingExit, setIsSavingExit] = useState(false);
 
   // Assessment notice local state
-  const [noticeNumber, setNoticeNumber] = useState(assessmentNotice.noticeNumber);
-  const [issueDate, setIssueDate] = useState(assessmentNotice.issueDate);
-  const [statutoryDue30Days, setStatutoryDue30Days] = useState(assessmentNotice.statutoryDue30Days);
-  const [principalTax, setPrincipalTax] = useState(assessmentNotice.principalTax);
+  const [noticeNumber, setNoticeNumber] = useState(assessmentNotice?.noticeNumber || '');
+  const [issueDate, setIssueDate] = useState(assessmentNotice?.issueDate || '');
+  const [statutoryDue30Days, setStatutoryDue30Days] = useState(assessmentNotice?.statutoryDue30Days || '');
+  const [principalTax, setPrincipalTax] = useState(assessmentNotice?.principalTax ?? (assessmentNotice as any)?.principalTotal ?? 0);
   const [penaltyRate, setPenaltyRate] = useState(20);
-  const [statutoryPenalty20, setStatutoryPenalty20] = useState(assessmentNotice.statutoryPenalty20);
-  const [interest, setInterest] = useState(assessmentNotice.interest);
-  const [objectionStatus, setObjectionStatus] = useState(assessmentNotice.objectionStatus);
-  const [objectionDetails, setObjectionDetails] = useState(assessmentNotice.objectionDetails || '');
+  const [statutoryPenalty20, setStatutoryPenalty20] = useState(assessmentNotice?.statutoryPenalty20 ?? (assessmentNotice as any)?.penaltyAmount ?? 0);
+  const [interest, setInterest] = useState(assessmentNotice?.interest ?? (assessmentNotice as any)?.interestAmount ?? 0);
+  const [objectionStatus, setObjectionStatus] = useState(assessmentNotice?.objectionStatus || 'NONE');
+  const [objectionDetails, setObjectionDetails] = useState(assessmentNotice?.objectionDetails || '');
   const [isSavingNotice, setIsSavingNotice] = useState(false);
 
   // Fraud modal
@@ -75,7 +75,7 @@ export const StepExitConferenceAssessment: React.FC<StepExitConferenceAssessment
   const [isSubmittingFraud, setIsSubmittingFraud] = useState(false);
 
   // Recalculate totals
-  const totalCalculated = principalTax + statutoryPenalty20 + interest;
+  const totalCalculated = (principalTax || 0) + (statutoryPenalty20 || 0) + (interest || 0);
 
   const handlePrincipalChange = (val: number) => {
     setPrincipalTax(val);

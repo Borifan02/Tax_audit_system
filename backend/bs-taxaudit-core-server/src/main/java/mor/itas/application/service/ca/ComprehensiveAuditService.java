@@ -1929,12 +1929,75 @@ public class ComprehensiveAuditService {
         annualFinancials.add(createAnnualFinancial("2024", baseRev, baseRev * 0.68, baseRev * 0.20));
         analysis.put("annualFinancials", annualFinancials);
 
+        List<Map<String, Object>> ratios = new ArrayList<>();
+        ratios.add(Map.of(
+                "name", "Gross Profit Margin",
+                "taxpayerValue", 32.0,
+                "benchmarkValue", 36.5,
+                "unit", "%",
+                "variancePct", -4.5,
+                "riskLevel", "HIGH",
+                "interpretation", "Steady 450 bps margin compression below sector peer average attributable to related-party raw material cost uplifts and unrecorded domestic sales."
+        ));
+        ratios.add(Map.of(
+                "name", "Effective Corporate Tax Rate",
+                "taxpayerValue", 11.2,
+                "benchmarkValue", 18.5,
+                "unit", "%",
+                "variancePct", -7.3,
+                "riskLevel", "HIGH",
+                "interpretation", "Sharp decline in effective tax contribution despite 28% top-line expansion; driven by aggressive offshore management fee deductions."
+        ));
+        ratios.add(Map.of(
+                "name", "Inventory Shrinkage & Loss Ratio",
+                "taxpayerValue", 3.8,
+                "benchmarkValue", 0.4,
+                "unit", "%",
+                "variancePct", 3.4,
+                "riskLevel", "HIGH",
+                "interpretation", "FY2024 stock loss claim exceeds industry technical evaporation/handling standard by 9.5x."
+        ));
+        ratios.add(Map.of(
+                "name", "VAT Input-to-Output Credit Ratio",
+                "taxpayerValue", 78.4,
+                "benchmarkValue", 62.0,
+                "unit", "%",
+                "variancePct", 16.4,
+                "riskLevel", "HIGH",
+                "interpretation", "Elevated input VAT credit ratio caused by misclassifying taxable domestic dispatches as zero-rated exports."
+        ));
+        analysis.put("ratios", ratios);
+
         List<Map<String, Object>> quarterlyData = new ArrayList<>();
         quarterlyData.add(createQuarterlyData("Q1 2024", baseRev * 0.23, 2.8, "Normal seasonal distribution"));
         quarterlyData.add(createQuarterlyData("Q2 2024", baseRev * 0.26, 3.4, "Steady revenue growth"));
         quarterlyData.add(createQuarterlyData("Q3 2024", baseRev * 0.24, 16.8, "Spike in input VAT claims (+24%)"));
         quarterlyData.add(createQuarterlyData("Q4 2024", baseRev * 0.27, 21.2, "Discrepancy in zero-rated export declarations"));
         analysis.put("quarterlyData", quarterlyData);
+
+        List<Map<String, Object>> anomalies = new ArrayList<>();
+        anomalies.add(Map.of(
+                "id", "ANM-C01",
+                "title", "VAT Turnover vs TIMS Electronic Fiscal Feed Discrepancy",
+                "severity", "HIGH",
+                "description", "16 high-value commodity dispatches recorded on TIMS fiscal memory devices were omitted from monthly VAT-03 output declarations and reported as zero-rated exports without ASYCUDA export SAD manifests.",
+                "auditorNotes", "Reclassify ETB " + String.format("%,.0f", vatVariance) + " as standard-rated domestic turnover and assess 15% output VAT plus statutory penalty."
+        ));
+        anomalies.add(Map.of(
+                "id", "ANM-C02",
+                "title", "ASYCUDA Customs CIF vs Purchase Ledger Valuation Uplift",
+                "severity", "HIGH",
+                "description", "Purchase ledger cost of imported inputs exceeds certified ASYCUDA Single Administrative Document CIF values due to unsubstantiated offshore affiliate markups.",
+                "auditorNotes", "Disallow ETB " + String.format("%,.0f", customsVariance) + " related-party cost uplift under Income Tax Proclamation Art. 27 and assess 30% CIT."
+        ));
+        anomalies.add(Map.of(
+                "id", "ANM-C03",
+                "title", "Executive Remuneration P&L vs PAYE Withholding Returns Gap",
+                "severity", "MEDIUM",
+                "description", "General ledger executive housing allowances and offshore performance bonuses deducted in P&L were excluded from monthly PAYE withholding schedules.",
+                "auditorNotes", "Assess unremitted PAYE withholding tax of ETB " + String.format("%,.0f", payeAdjTax) + " on benefits-in-kind and executive bonuses."
+        ));
+        analysis.put("anomalies", anomalies);
 
         analysis.put("auditorSynthesis", "Cross-reconciliation between audited income statements and TIMS fiscal records revealed material suppression of domestic turnover. In addition, related-party import uplifts were disallowed under statutory arm's length standards.");
         analysis.put("conclusion", "Based on comprehensive testing of revenue, payroll, and customs imports, adjustments of ETB " + String.format("%,.0f", principalTax) + " are substantiated under statutory tax proclamations.");
@@ -2032,29 +2095,123 @@ public class ComprehensiveAuditService {
 
         // 9. Balance Sheet Items
         List<Map<String, Object>> balanceSheetItems = new ArrayList<>();
-        balanceSheetItems.add(createBalanceSheetItem(caseId, "Property, Plant & Equipment (Fixed Assets)", "Existence", baseRev * 0.65, baseRev * 0.65, 0.0, "Compliant", "Verified against physical tag log.", "CONFIRMED"));
-        balanceSheetItems.add(createBalanceSheetItem(caseId, "Trade Accounts Receivable & Provisions", "Valuation", baseRev * 0.20, baseRev * 0.18, baseRev * 0.02, "Requires Restatement", "Unsupported bad debt write-offs identified.", "ADJUSTED"));
-        balanceSheetItems.add(createBalanceSheetItem(caseId, "Inventory & Raw Materials Stock", "Completeness", baseRev * 0.25, baseRev * 0.23, baseRev * 0.02, "Non-Compliant", "Excess shrinkage claims disallowed.", "ADJUSTED"));
-        balanceSheetItems.add(createBalanceSheetItem(caseId, "Related Party Loans & Offshore Balances", "Valuation", baseRev * 0.09, baseRev * 0.05, customsVariance, "Non-Compliant", "Unsubstantiated affiliate markups disallowed.", "DISALLOWED"));
-        balanceSheetItems.add(createBalanceSheetItem(caseId, "Trade Accounts Payable & Accrued Charges", "Completeness", baseRev * 0.16, baseRev * 0.16, 0.0, "Compliant", "Supplier circularizations confirmed balances.", "CONFIRMED"));
-        balanceSheetItems.add(createBalanceSheetItem(caseId, "Bank Borrowings & Commercial Debt", "Rights & Obligations", baseRev * 0.30, baseRev * 0.30, 0.0, "Compliant", "Direct bank confirmations verified loan covenants.", "CONFIRMED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Property, Plant & Equipment (Fixed Assets)", "Existence", baseRev * 0.65, baseRev * 0.65, 0.0, "COMPLIANT", "Verified against physical tag log.", "CONFIRMED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Trade Accounts Receivable & Provisions", "Valuation", baseRev * 0.20, baseRev * 0.18, baseRev * 0.02, "PARTIAL", "Unsupported bad debt write-offs identified.", "ADJUSTED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Inventory & Raw Materials Stock", "Completeness", baseRev * 0.25, baseRev * 0.23, baseRev * 0.02, "NON_COMPLIANT", "Excess shrinkage claims disallowed.", "ADJUSTED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Related Party Loans & Offshore Balances", "Valuation", baseRev * 0.09, baseRev * 0.05, customsVariance, "NON_COMPLIANT", "Unsubstantiated affiliate markups disallowed.", "DISALLOWED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Trade Accounts Payable & Accrued Charges", "Completeness", baseRev * 0.16, baseRev * 0.16, 0.0, "COMPLIANT", "Supplier circularizations confirmed balances.", "CONFIRMED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Bank Borrowings & Commercial Debt", "Rights & Obligations", baseRev * 0.30, baseRev * 0.30, 0.0, "COMPLIANT", "Direct bank confirmations verified loan covenants.", "CONFIRMED"));
 
         // 10. CAAT Audit Data
         Map<String, Object> caatAudit = new LinkedHashMap<>();
         caatAudit.put("caseId", caseId.toString());
         caatAudit.put("isCAATEligible", true);
-        caatAudit.put("caatToolName", "ITAS Automated CAAT Forensic Suite");
+        caatAudit.put("caatToolName", "ITAS Automated CAAT Forensic Suite v4.2");
         caatAudit.put("executionTimestamp", OffsetDateTime.now().toString());
-        caatAudit.put("samplingMethod", "Stratified Statistical Sampling (MUS)");
-        caatAudit.put("auditorNotes", "Automated electronic ledger mining executed across all journal entries and customs manifests.");
+        caatAudit.put("samplingMethod", "Stratified Sampling");
+        caatAudit.put("totalRecordsMined", 89372);
+        caatAudit.put("totalFlaggedExposure", vatVariance + customsVariance + payeVariance + 595000.0);
+        caatAudit.put("auditorNotes", "Automated electronic ledger mining executed across 89,372 general ledger journal entries, 68,400 TIMS fiscal receipts, and 842 ASYCUDA customs manifests.");
 
         List<Map<String, Object>> caatRules = new ArrayList<>();
-        caatRules.add(Map.of("code", "RULE-01", "name", "TIMS Electronic Fiscal Journal Matching", "category", "Revenue", "sampleSize", 68400, "discrepanciesCount", 16, "varianceAmount", vatVariance, "status", "FLAGGED", "details", "Discrepancy identified between TIMS records and VAT declarations."));
-        caatRules.add(Map.of("code", "RULE-02", "name", "Benford Law First-Digit Forensic Anomaly Detection", "category", "Ledger Integrity", "sampleSize", 18160, "discrepanciesCount", 24, "varianceAmount", 315000.0, "status", "FLAGGED", "details", "Statistical distortion in digits 7 and 9 indicative of manual rounded transactions."));
-        caatRules.add(Map.of("code", "RULE-03", "name", "ASYCUDA Single Administrative Document Cross-Bridge", "category", "Cost of Sales", "sampleSize", 842, "discrepanciesCount", 38, "varianceAmount", customsVariance, "status", "FLAGGED", "details", "Customs CIF values differ from purchase ledger debits."));
-        caatRules.add(Map.of("code", "RULE-04", "name", "Payroll Master vs P&L Gross Remittance Checker", "category", "Payroll", "sampleSize", 1450, "discrepanciesCount", 8, "varianceAmount", payeVariance, "status", "FLAGGED", "details", "Discrepancies identified in executive perquisites and offshore bonuses."));
-        caatRules.add(Map.of("code", "RULE-05", "name", "Weekend & Out-of-Hours Manual Journal Entry Trap", "category", "General Ledger", "sampleSize", 520, "discrepanciesCount", 7, "varianceAmount", 280000.0, "status", "FLAGGED", "details", "Manual journal entries posted during non-business hours lacking CFO approval."));
+        caatRules.add(Map.of(
+                "id", "CAAT-R01", "ruleCode", "CAAT-TIMS-01", "ruleName", "TIMS Electronic Fiscal Journal vs VAT-03 Output Matching",
+                "category", "RECONCILIATION", "targetLedger", "GL-4000 Sales & Fiscal Memory Log",
+                "sampleSize", 68400, "discrepanciesCount", 16, "varianceAmount", vatVariance,
+                "status", "FLAGGED", "details", "16 high-value dispatches recorded in TIMS fiscal memory omitted from taxable VAT-03 declarations."
+        ));
+        caatRules.add(Map.of(
+                "id", "CAAT-R02", "ruleCode", "CAAT-BENF-02", "ruleName", "Benford Law First-Digit Forensic Anomaly Detection",
+                "category", "BENFORD", "targetLedger", "GL-5100 Operating & Admin Expenses",
+                "sampleSize", 18160, "discrepanciesCount", 24, "varianceAmount", 315000.0,
+                "status", "FLAGGED", "details", "Statistical spike in leading digits 7 and 8 (+6.6% above Benford expectation) just below ETB 100,000 CFO approval threshold."
+        ));
+        caatRules.add(Map.of(
+                "id", "CAAT-R03", "ruleCode", "CAAT-ASYC-03", "ruleName", "ASYCUDA Single Administrative Document CIF Cross-Bridge",
+                "category", "RECONCILIATION", "targetLedger", "GL-5010 Foreign Raw Material Purchases",
+                "sampleSize", 842, "discrepanciesCount", 38, "varianceAmount", customsVariance,
+                "status", "FLAGGED", "details", "Purchase ledger cost of goods exceeds certified customs CIF declarations due to post-clearance affiliate markups."
+        ));
+        caatRules.add(Map.of(
+                "id", "CAAT-R04", "ruleCode", "CAAT-PAYE-04", "ruleName", "Payroll Master vs P&L Remuneration Cross-Check",
+                "category", "RECONCILIATION", "targetLedger", "GL-6100 Executive Salaries & Allowances",
+                "sampleSize", 1450, "discrepanciesCount", 8, "varianceAmount", payeVariance,
+                "status", "FLAGGED", "details", "Executive housing allowances and offshore bonus vouchers deducted in P&L omitted from PAYE returns."
+        ));
+        caatRules.add(Map.of(
+                "id", "CAAT-R05", "ruleCode", "CAAT-WKND-05", "ruleName", "Weekend & Out-of-Hours Manual Journal Entry Trap",
+                "category", "JOURNAL_ENTRY", "targetLedger", "GL-2140 Related Party Clearing Account",
+                "sampleSize", 520, "discrepanciesCount", 7, "varianceAmount", 280000.0,
+                "status", "FLAGGED", "details", "7 manual journal entries posted on Sundays between 22:00-23:45 crediting offshore affiliate accounts."
+        ));
         caatAudit.put("rules", caatRules);
+
+        List<Map<String, Object>> benfordStats = new ArrayList<>();
+        benfordStats.add(Map.of("digit", 1, "expectedPct", 30.1, "observedPct", 24.2, "observedCount", 1016, "isAnomalous", false, "deviation", -5.9));
+        benfordStats.add(Map.of("digit", 2, "expectedPct", 17.6, "observedPct", 16.5, "observedCount", 693, "isAnomalous", false, "deviation", -1.1));
+        benfordStats.add(Map.of("digit", 3, "expectedPct", 12.5, "observedPct", 11.8, "observedCount", 496, "isAnomalous", false, "deviation", -0.7));
+        benfordStats.add(Map.of("digit", 4, "expectedPct", 9.7, "observedPct", 9.2, "observedCount", 386, "isAnomalous", false, "deviation", -0.5));
+        benfordStats.add(Map.of("digit", 5, "expectedPct", 7.9, "observedPct", 8.1, "observedCount", 340, "isAnomalous", false, "deviation", 0.2));
+        benfordStats.add(Map.of("digit", 6, "expectedPct", 6.7, "observedPct", 6.9, "observedCount", 290, "isAnomalous", false, "deviation", 0.2));
+        benfordStats.add(Map.of("digit", 7, "expectedPct", 5.8, "observedPct", 12.4, "observedCount", 521, "isAnomalous", true, "deviation", 6.6));
+        benfordStats.add(Map.of("digit", 8, "expectedPct", 5.1, "observedPct", 8.3, "observedCount", 349, "isAnomalous", true, "deviation", 3.2));
+        benfordStats.add(Map.of("digit", 9, "expectedPct", 4.6, "observedPct", 2.6, "observedCount", 109, "isAnomalous", false, "deviation", -2.0));
+        caatAudit.put("benfordStats", benfordStats);
+
+        List<Map<String, Object>> caatExceptions = new ArrayList<>();
+        caatExceptions.add(Map.ofEntries(
+                Map.entry("id", "EXC-001"), Map.entry("ruleCode", "CAAT-TIMS-01"), Map.entry("transactionDate", "2024-09-18"),
+                Map.entry("transactionRef", "TIMS-INV-2024-88412"), Map.entry("accountName", "4010 Domestic Commodity Sales"),
+                Map.entry("counterparty", "Horizon Industrial Distribution PLC"), Map.entry("amount", Math.round(vatVariance * 0.42)),
+                Map.entry("taxHead", "VAT"), Map.entry("riskLevel", "CRITICAL"),
+                Map.entry("anomalyType", "Unreported Domestic Fiscal Dispatch"), Map.entry("status", "FINDING_CREATED"),
+                Map.entry("details", "Fiscal invoice issued via EFD machine MRC# ET-009214 but classified as zero-rated export in VAT-03 without ASYCUDA export SAD.")
+        ));
+        caatExceptions.add(Map.ofEntries(
+                Map.entry("id", "EXC-002"), Map.entry("ruleCode", "CAAT-TIMS-01"), Map.entry("transactionDate", "2024-11-04"),
+                Map.entry("transactionRef", "TIMS-INV-2024-91045"), Map.entry("accountName", "4010 Domestic Commodity Sales"),
+                Map.entry("counterparty", "Rift Valley Wholesale Trading SC"), Map.entry("amount", Math.round(vatVariance * 0.58)),
+                Map.entry("taxHead", "VAT"), Map.entry("riskLevel", "CRITICAL"),
+                Map.entry("anomalyType", "Omitted Output VAT Schedule Batch"), Map.entry("status", "FINDING_CREATED"),
+                Map.entry("details", "Batch of 9 domestic delivery dispatches omitted from monthly VAT output schedule; verified against warehouse gate-pass logs.")
+        ));
+        caatExceptions.add(Map.ofEntries(
+                Map.entry("id", "EXC-003"), Map.entry("ruleCode", "CAAT-ASYC-03"), Map.entry("transactionDate", "2024-07-29"),
+                Map.entry("transactionRef", "SAD-DJ-2024-44109"), Map.entry("accountName", "5010 Imported Raw Materials"),
+                Map.entry("counterparty", "Global Petrochem Trading FZE (Dubai)"), Map.entry("amount", Math.round(customsVariance)),
+                Map.entry("taxHead", "CIT"), Map.entry("riskLevel", "CRITICAL"),
+                Map.entry("anomalyType", "Related-Party Post-Clearance Import Markup"), Map.entry("status", "FINDING_CREATED"),
+                Map.entry("details", "Post-clearance debit note added 18.5% related-party procurement surcharge above customs-verified CIF value.")
+        ));
+        caatExceptions.add(Map.ofEntries(
+                Map.entry("id", "EXC-004"), Map.entry("ruleCode", "CAAT-PAYE-04"), Map.entry("transactionDate", "2024-12-15"),
+                Map.entry("transactionRef", "PV-EXEC-2024-1192"), Map.entry("accountName", "6120 Executive Allowances"),
+                Map.entry("counterparty", "Senior Management Payroll Pool"), Map.entry("amount", Math.round(payeVariance)),
+                Map.entry("taxHead", "PAYE"), Map.entry("riskLevel", "HIGH"),
+                Map.entry("anomalyType", "Unwithheld Executive Benefits-in-Kind"), Map.entry("status", "PENDING_REVIEW"),
+                Map.entry("details", "Annual executive housing and offshore bonus disbursement expensed in P&L but excluded from monthly PAYE Schedule B.")
+        ));
+        caatExceptions.add(Map.ofEntries(
+                Map.entry("id", "EXC-005"), Map.entry("ruleCode", "CAAT-WKND-05"), Map.entry("transactionDate", "2024-12-29"),
+                Map.entry("transactionRef", "MJE-2024-9984"), Map.entry("accountName", "5490 Technical & Management Consultancy"),
+                Map.entry("counterparty", "MENA Holding Advisory Ltd"), Map.entry("amount", 280000L),
+                Map.entry("taxHead", "WHT"), Map.entry("riskLevel", "HIGH"),
+                Map.entry("anomalyType", "Sunday Midnight Manual Journal Override"), Map.entry("status", "PENDING_REVIEW"),
+                Map.entry("details", "Year-end manual journal entry posted on Sunday night accruing advisory fee without underlying deliverables or withholding tax receipt.")
+        ));
+        caatAudit.put("exceptions", caatExceptions);
+
+        List<String> executionLogs = List.of(
+                "[09:14:02.110] INFO  ITAS-CAAT-Engine v4.2 initialized for TIN " + tin + " (" + tpName + ")",
+                "[09:14:03.450] INFO  Ingested 89,372 general ledger journal lines from ERP Trial Balance & GL Dump (FY2024)",
+                "[09:14:05.820] INFO  Connected to TIMS Fiscal Memory Gateway — fetched 68,400 cryptographic receipt hashes",
+                "[09:14:07.195] WARN  [CAAT-TIMS-01] 16 fiscal invoices (ETB " + String.format("%,.0f", vatVariance) + ") missing from VAT-03 output declarations",
+                "[09:14:08.640] WARN  [CAAT-BENF-02] Chi-Square = 42.8 (p < 0.001): Significant Benford deviation on leading digits 7 (+2.6%) and 9 (+3.6%)",
+                "[09:14:10.312] WARN  [CAAT-ASYC-03] Cross-matched 842 ASYCUDA SAD manifests: 38 purchase vouchers exceed CIF value by ETB " + String.format("%,.0f", customsVariance),
+                "[09:14:11.904] WARN  [CAAT-PAYE-04] Payroll GL vs PAYE Schedule B reconciliation flagged ETB " + String.format("%,.0f", payeVariance) + " un-taxed executive benefits",
+                "[09:14:12.550] INFO  Forensic run completed in 10.44s — 5 rules flagged, 5 high-risk exception dossiers generated."
+        );
+        caatAudit.put("executionLogs", executionLogs);
 
         // 11. Entry Conference
         Map<String, Object> entryConference = new LinkedHashMap<>();
@@ -2094,6 +2251,7 @@ public class ComprehensiveAuditService {
 
         // 13. Assessment Notice
         Map<String, Object> assessmentNotice = new LinkedHashMap<>();
+        assessmentNotice.put("caseId", caseId.toString());
         assessmentNotice.put("noticeNumber", "NOT-CA-" + auditCase.getId().toString().substring(0, 8).toUpperCase());
         assessmentNotice.put("issueDate", "2026-11-20");
         assessmentNotice.put("statutoryDue30Days", "2026-12-20");
@@ -2102,11 +2260,14 @@ public class ComprehensiveAuditService {
         assessmentNotice.put("principalPaye", payeAdjTax);
         assessmentNotice.put("principalWht", 0.0);
         assessmentNotice.put("principalTotal", principalTax);
+        assessmentNotice.put("principalTax", principalTax);
         assessmentNotice.put("penaltyPct", 0.20);
         assessmentNotice.put("penaltyAmount", penaltyAmount);
+        assessmentNotice.put("statutoryPenalty20", penaltyAmount);
         assessmentNotice.put("interestRateAnnual", 0.14);
         assessmentNotice.put("interestDays", 180);
         assessmentNotice.put("interestAmount", interestAmount);
+        assessmentNotice.put("interest", interestAmount);
         assessmentNotice.put("totalAssessmentDue", totalAssessmentDue);
         assessmentNotice.put("objectionStatus", "NONE");
         assessmentNotice.put("fraudReferralTriggered", false);
@@ -2164,28 +2325,57 @@ public class ComprehensiveAuditService {
         result.put("draftReport", draftReport);
         result.put("auditTrail", auditTrail);
 
-        // Overlay saved snapshot modifications from DB
+        // Overlay saved snapshot modifications from DB (preserving default sub-keys if saved map is partial)
         var snapshotOpt = snapshotRepository.findByCaseId(caseId);
         if (snapshotOpt.isPresent()) {
             try {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> saved = objectMapper.readValue(snapshotOpt.get().getSnapshotData(), Map.class);
-                if (saved.containsKey("procedures")) result.put("procedures", saved.get("procedures"));
-                if (saved.containsKey("evidence")) result.put("evidence", saved.get("evidence"));
-                if (saved.containsKey("queries")) result.put("queries", saved.get("queries"));
-                if (saved.containsKey("findings")) result.put("findings", saved.get("findings"));
-                if (saved.containsKey("workingPapers")) result.put("workingPapers", saved.get("workingPapers"));
-                if (saved.containsKey("draftReport")) result.put("draftReport", saved.get("draftReport"));
-                if (saved.containsKey("analysis")) result.put("analysis", saved.get("analysis"));
-                if (saved.containsKey("entryConference")) result.put("entryConference", saved.get("entryConference"));
-                if (saved.containsKey("caatAudit")) result.put("caatAudit", saved.get("caatAudit"));
-                if (saved.containsKey("balanceSheetItems")) result.put("balanceSheetItems", saved.get("balanceSheetItems"));
-                if (saved.containsKey("reconciliations")) result.put("reconciliations", saved.get("reconciliations"));
-                if (saved.containsKey("exitConference")) result.put("exitConference", saved.get("exitConference"));
-                if (saved.containsKey("assessmentNotice")) result.put("assessmentNotice", saved.get("assessmentNotice"));
-                if (saved.containsKey("multiZoneAllocations")) result.put("multiZoneAllocations", saved.get("multiZoneAllocations"));
-                if (saved.containsKey("auditTrail")) result.put("auditTrail", saved.get("auditTrail"));
-                if (saved.containsKey("auditCase") && saved.get("auditCase") instanceof Map) {
+                if (saved.get("procedures") instanceof List) result.put("procedures", saved.get("procedures"));
+                if (saved.get("evidence") instanceof List) result.put("evidence", saved.get("evidence"));
+                if (saved.get("queries") instanceof List) result.put("queries", saved.get("queries"));
+                if (saved.get("findings") instanceof List) result.put("findings", saved.get("findings"));
+                if (saved.get("workingPapers") instanceof List) result.put("workingPapers", saved.get("workingPapers"));
+                if (saved.get("balanceSheetItems") instanceof List) result.put("balanceSheetItems", saved.get("balanceSheetItems"));
+                if (saved.get("multiZoneAllocations") instanceof List) result.put("multiZoneAllocations", saved.get("multiZoneAllocations"));
+                if (saved.get("auditTrail") instanceof List) result.put("auditTrail", saved.get("auditTrail"));
+
+                if (saved.get("draftReport") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> m = (Map<String, Object>) saved.get("draftReport");
+                    draftReport.putAll(m);
+                }
+                if (saved.get("analysis") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> m = (Map<String, Object>) saved.get("analysis");
+                    analysis.putAll(m);
+                }
+                if (saved.get("entryConference") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> m = (Map<String, Object>) saved.get("entryConference");
+                    entryConference.putAll(m);
+                }
+                if (saved.get("caatAudit") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> m = (Map<String, Object>) saved.get("caatAudit");
+                    caatAudit.putAll(m);
+                }
+                if (saved.get("reconciliations") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> m = (Map<String, Object>) saved.get("reconciliations");
+                    reconciliations.putAll(m);
+                }
+                if (saved.get("exitConference") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> m = (Map<String, Object>) saved.get("exitConference");
+                    exitConference.putAll(m);
+                }
+                if (saved.get("assessmentNotice") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> m = (Map<String, Object>) saved.get("assessmentNotice");
+                    assessmentNotice.putAll(m);
+                }
+                if (saved.get("auditCase") instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> savedAc = (Map<String, Object>) saved.get("auditCase");
                     if (savedAc.containsKey("status")) auditCaseDto.put("status", savedAc.get("status"));
@@ -2413,6 +2603,7 @@ public class ComprehensiveAuditService {
         f.put("isSignificant", sig);
         f.put("indicatesFraud", fraud);
         f.put("relatedProcedureId", relProc);
+        f.put("relatedEvidenceIds", List.of("EVD-C01", "EVD-C03"));
         return f;
     }
 
@@ -2430,6 +2621,7 @@ public class ComprehensiveAuditService {
         w.put("conclusions", conc);
         w.put("status", status);
         w.put("relatedProcedureId", relProc);
+        w.put("evidenceIds", List.of("EVD-C01"));
         return w;
     }
 
@@ -2443,6 +2635,7 @@ public class ComprehensiveAuditService {
         qm.put("statutoryBasis", basis);
         qm.put("dueDate", dueDate);
         qm.put("status", status);
+        qm.put("attachedEvidenceIds", List.of("EVD-C01"));
         if (resp != null) {
             qm.put("taxpayerResponse", Map.of(
                     "responseText", resp,
@@ -2506,6 +2699,10 @@ public class ComprehensiveAuditService {
                     break;
                 }
             }
+            if (target == null) {
+                procs.add(updates);
+                target = updates;
+            }
         }
         autosaveCase(caseId, snap, actorId);
         return target != null ? target : updates;
@@ -2553,6 +2750,10 @@ public class ComprehensiveAuditService {
                     break;
                 }
             }
+            if (target == null) {
+                findings.add(updates);
+                target = updates;
+            }
         }
         autosaveCase(caseId, snap, actorId);
         return target != null ? target : updates;
@@ -2582,6 +2783,10 @@ public class ComprehensiveAuditService {
                     target = w;
                     break;
                 }
+            }
+            if (target == null) {
+                wps.add(updates);
+                target = updates;
             }
         }
         autosaveCase(caseId, snap, actorId);
@@ -2613,25 +2818,41 @@ public class ComprehensiveAuditService {
                     break;
                 }
             }
+            if (target == null) {
+                qs.add(updates);
+                target = updates;
+            }
         }
         autosaveCase(caseId, snap, actorId);
         return target != null ? target : updates;
     }
 
     @Transactional
-    public Map<String, Object> updateAnalysis(UUID caseId, Map<String, Object> analysis, String actorId) {
+    public Map<String, Object> updateAnalysis(UUID caseId, Map<String, Object> analysisUpdates, String actorId) {
         Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
-        snap.put("analysis", analysis);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> existing = (Map<String, Object>) snap.get("analysis");
+        if (existing != null) {
+            existing.putAll(analysisUpdates);
+        } else {
+            snap.put("analysis", analysisUpdates);
+        }
         autosaveCase(caseId, snap, actorId);
-        return analysis;
+        return (Map<String, Object>) snap.get("analysis");
     }
 
     @Transactional
-    public Map<String, Object> updateDraftReportContent(UUID caseId, Map<String, Object> report, String actorId) {
+    public Map<String, Object> updateDraftReportContent(UUID caseId, Map<String, Object> reportUpdates, String actorId) {
         Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
-        snap.put("draftReport", report);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> existing = (Map<String, Object>) snap.get("draftReport");
+        if (existing != null) {
+            existing.putAll(reportUpdates);
+        } else {
+            snap.put("draftReport", reportUpdates);
+        }
         autosaveCase(caseId, snap, actorId);
-        return report;
+        return (Map<String, Object>) snap.get("draftReport");
     }
 
     @Transactional

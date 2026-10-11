@@ -77,10 +77,10 @@ export const StepCompProcedures: React.FC<StepCompProceduresProps> = ({
     );
   };
 
-  const filteredProcs = procedures.filter(
+  const filteredProcs = (procedures || []).filter(
     (p) =>
-      p.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.title.toLowerCase().includes(searchQuery.toLowerCase())
+      (p.reference || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -93,7 +93,7 @@ export const StepCompProcedures: React.FC<StepCompProceduresProps> = ({
               Audit Assertions, Procedures & Balance Sheet Verification (FR-04.4-03/08/11)
             </h3>
             <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-              {completedCount}/{procedures.length} Assertions Completed
+              {completedCount}/{(procedures || []).length} Assertions Completed
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
@@ -109,7 +109,7 @@ export const StepCompProcedures: React.FC<StepCompProceduresProps> = ({
               viewMode === 'procedures' ? 'bg-white text-indigo-700 shadow-2xs font-semibold' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Audit Procedures ({procedures.length})
+            Audit Procedures ({(procedures || []).length})
           </button>
           <button
             onClick={() => setViewMode('balanceSheet')}
@@ -117,7 +117,7 @@ export const StepCompProcedures: React.FC<StepCompProceduresProps> = ({
               viewMode === 'balanceSheet' ? 'bg-white text-indigo-700 shadow-2xs font-semibold' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Balance Sheet Matrix ({balanceSheetItems.length})
+            Balance Sheet Matrix ({(balanceSheetItems || []).length})
           </button>
         </div>
       </div>

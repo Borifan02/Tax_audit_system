@@ -30,9 +30,16 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
   onTriggerAutosave
 }) => {
   const [activeTab, setActiveTab] = useState<'statutoryRecons' | 'ratios' | 'financials' | 'anomalies'>('statutoryRecons');
-  const [synthesisText, setSynthesisText] = useState(analysis.auditorSynthesis || '');
-  const [conclusionText, setConclusionText] = useState(analysis.conclusion || '');
+  const [synthesisText, setSynthesisText] = useState(analysis?.auditorSynthesis || '');
+  const [conclusionText, setConclusionText] = useState(analysis?.conclusion || '');
   const [isSaving, setIsSaving] = useState(false);
+
+  const safeAnomalies = analysis?.anomalies || [];
+  const safeRatios = analysis?.ratios || [];
+  const safeFinancials = analysis?.annualFinancials || [];
+  const vatVsSales = reconciliations?.vatVsSales || { annualCitGrossTurnover: 0, annualVatSalesDeclared: 0, timsElectronicInvoices: 0, variance: 0, notes: '' };
+  const payrollPayeVsPnL = reconciliations?.payrollPayeVsPnL || { pnlSalariesExpense: 0, payrollPayeRemitted: 0, variance: 0, notes: '' };
+  const customsImportsVsPurchases = reconciliations?.customsImportsVsPurchases || { asycudaCifImports: 0, generalLedgerImportCosts: 0, variance: 0, notes: '' };
 
   const handleSaveSynthesis = async () => {
     setIsSaving(true);
@@ -58,7 +65,7 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
               Statutory Tax Reconciliations & Forensic Analytics (SOR FR-04.7-20 & FR-04.4-16)
             </h3>
             <span className="text-xs font-mono font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-              3 Discrepancies Flagged
+              {safeAnomalies.length || 3} Discrepancies Flagged
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
@@ -98,7 +105,7 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
               activeTab === 'anomalies' ? 'bg-white text-indigo-700 shadow-2xs font-semibold' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            System Anomalies ({analysis.anomalies.length})
+            System Anomalies ({safeAnomalies.length})
           </button>
         </div>
       </div>
@@ -118,31 +125,31 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
                 </h4>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800">
-                DISCREPANCY FLAGGED: $1,820,000 GAP
+                DISCREPANCY FLAGGED: ${(vatVsSales.variance || 0).toLocaleString()} GAP
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono text-xs text-center py-2 bg-gray-50 rounded border border-gray-100">
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">Annual CIT Turnover</span>
-                <span className="font-bold text-gray-900">${reconciliations.vatVsSales.annualCitGrossTurnover?.toLocaleString()}</span>
+                <span className="font-bold text-gray-900">${vatVsSales.annualCitGrossTurnover?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">12-Month VAT-03 Declared</span>
-                <span className="font-bold text-indigo-700">${reconciliations.vatVsSales.annualVatSalesDeclared?.toLocaleString()}</span>
+                <span className="font-bold text-indigo-700">${vatVsSales.annualVatSalesDeclared?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">TIMS E-Invoices Registered</span>
-                <span className="font-bold text-gray-700">${reconciliations.vatVsSales.timsElectronicInvoices?.toLocaleString()}</span>
+                <span className="font-bold text-gray-700">${vatVsSales.timsElectronicInvoices?.toLocaleString()}</span>
               </div>
               <div className="bg-rose-50 rounded p-1">
                 <span className="text-[10px] text-rose-700 font-sans block uppercase font-bold">Unreconciled Variance</span>
-                <span className="font-bold text-rose-800 text-sm">${reconciliations.vatVsSales.variance?.toLocaleString()}</span>
+                <span className="font-bold text-rose-800 text-sm">${vatVsSales.variance?.toLocaleString()}</span>
               </div>
             </div>
 
             <p className="text-xs text-gray-700 leading-relaxed bg-rose-50/40 p-3 rounded border border-rose-100">
-              <strong>Auditor Discrepancy Evaluation:</strong> {reconciliations.vatVsSales.notes}
+              <strong>Auditor Discrepancy Evaluation:</strong> {vatVsSales.notes}
             </p>
           </div>
 
@@ -158,27 +165,27 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
                 </h4>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                DISCREPANCY FLAGGED: $440,000 GAP
+                DISCREPANCY FLAGGED: ${(payrollPayeVsPnL.variance || 0).toLocaleString()} GAP
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center py-2 bg-gray-50 rounded border border-gray-100">
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">P&L Staff Costs Deducted</span>
-                <span className="font-bold text-gray-900">${reconciliations.payrollPayeVsPnL.pnlSalariesExpense?.toLocaleString()}</span>
+                <span className="font-bold text-gray-900">${payrollPayeVsPnL.pnlSalariesExpense?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">12-Month PAYE Remitted Base</span>
-                <span className="font-bold text-indigo-700">${reconciliations.payrollPayeVsPnL.payrollPayeRemitted?.toLocaleString()}</span>
+                <span className="font-bold text-indigo-700">${payrollPayeVsPnL.payrollPayeRemitted?.toLocaleString()}</span>
               </div>
               <div className="bg-amber-50 rounded p-1">
                 <span className="text-[10px] text-amber-700 font-sans block uppercase font-bold">Untaxed Payroll Spread</span>
-                <span className="font-bold text-amber-800 text-sm">${reconciliations.payrollPayeVsPnL.variance?.toLocaleString()}</span>
+                <span className="font-bold text-amber-800 text-sm">${payrollPayeVsPnL.variance?.toLocaleString()}</span>
               </div>
             </div>
 
             <p className="text-xs text-gray-700 leading-relaxed bg-amber-50/40 p-3 rounded border border-amber-100">
-              <strong>Auditor Discrepancy Evaluation:</strong> {reconciliations.payrollPayeVsPnL.notes}
+              <strong>Auditor Discrepancy Evaluation:</strong> {payrollPayeVsPnL.notes}
             </p>
           </div>
 
@@ -194,27 +201,27 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
                 </h4>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">
-                DISCREPANCY FLAGGED: $2,250,000 UPLIFT
+                DISCREPANCY FLAGGED: ${(customsImportsVsPurchases.variance || 0).toLocaleString()} UPLIFT
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center py-2 bg-gray-50 rounded border border-gray-100">
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">ASYCUDA Customs CIF Value</span>
-                <span className="font-bold text-gray-900">${reconciliations.customsImportsVsPurchases.asycudaCifImports?.toLocaleString()}</span>
+                <span className="font-bold text-gray-900">${customsImportsVsPurchases.asycudaCifImports?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">General Ledger Raw Materials</span>
-                <span className="font-bold text-indigo-700">${reconciliations.customsImportsVsPurchases.generalLedgerImportCosts?.toLocaleString()}</span>
+                <span className="font-bold text-indigo-700">${customsImportsVsPurchases.generalLedgerImportCosts?.toLocaleString()}</span>
               </div>
               <div className="bg-indigo-50 rounded p-1">
                 <span className="text-[10px] text-indigo-700 font-sans block uppercase font-bold">Transfer Pricing Uplift</span>
-                <span className="font-bold text-indigo-800 text-sm">${reconciliations.customsImportsVsPurchases.variance?.toLocaleString()}</span>
+                <span className="font-bold text-indigo-800 text-sm">${customsImportsVsPurchases.variance?.toLocaleString()}</span>
               </div>
             </div>
 
             <p className="text-xs text-gray-700 leading-relaxed bg-indigo-50/40 p-3 rounded border border-indigo-100">
-              <strong>Auditor Discrepancy Evaluation:</strong> {reconciliations.customsImportsVsPurchases.notes}
+              <strong>Auditor Discrepancy Evaluation:</strong> {customsImportsVsPurchases.notes}
             </p>
           </div>
         </div>
@@ -223,8 +230,7 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
       {/* Tab 2: Ratios Benchmarks (FR-04.4-06 & 14) */}
       {activeTab === 'ratios' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {analysis.ratios.map((ratio) => {
-            const isNegative = ratio.variancePct < 0;
+          {safeRatios.map((ratio) => {
             const isHighRisk = ratio.riskLevel === 'HIGH';
 
             return (
@@ -232,20 +238,20 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-gray-700">{ratio.name}</span>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-rose-50 text-rose-800 border-rose-200">
-                    {ratio.riskLevel} RISK
+                    {ratio.riskLevel || 'HIGH'} RISK
                   </span>
                 </div>
 
                 <div className="flex items-baseline justify-between pt-1">
                   <div>
                     <span className="text-2xl font-bold font-mono text-gray-900 tabular-nums">
-                      {ratio.taxpayerValue}{ratio.unit}
+                      {ratio.taxpayerValue}{ratio.unit || '%'}
                     </span>
                     <span className="text-[11px] text-gray-400 block">Taxpayer</span>
                   </div>
                   <div className="text-right">
                     <span className="text-base font-semibold font-mono text-gray-600 tabular-nums">
-                      {ratio.benchmarkValue}{ratio.unit}
+                      {ratio.benchmarkValue}{ratio.unit || '%'}
                     </span>
                     <span className="text-[11px] text-gray-400 block">Sector Benchmark</span>
                   </div>
@@ -254,7 +260,7 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
                 <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
                   <span className="text-gray-500">Variance:</span>
                   <span className={`font-mono font-bold flex items-center gap-1 ${isHighRisk ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {ratio.variancePct > 0 ? `+${ratio.variancePct}%` : `${ratio.variancePct}%`}
+                    {(ratio.variancePct || 0) > 0 ? `+${ratio.variancePct}%` : `${ratio.variancePct || 0}%`}
                   </span>
                 </div>
 
@@ -278,7 +284,7 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50/50 text-gray-600 text-[11px] font-semibold uppercase">
                   <th className="py-2.5 px-4">Metric</th>
-                  {analysis.annualFinancials.map((f) => (
+                  {safeFinancials.map((f) => (
                     <th key={f.year} className="py-2.5 px-4 text-right font-mono">FY {f.year}</th>
                   ))}
                   <th className="py-2.5 px-4 text-right">3-Yr Trend</th>
@@ -287,21 +293,21 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
               <tbody className="divide-y divide-gray-100 font-mono text-xs">
                 <tr>
                   <td className="py-2.5 px-4 font-sans font-medium text-gray-900">Gross Turnover</td>
-                  {analysis.annualFinancials.map((f) => (
+                  {safeFinancials.map((f) => (
                     <td key={f.year} className="py-2.5 px-4 text-right tabular-nums">${f.revenue?.toLocaleString()}</td>
                   ))}
                   <td className="py-2.5 px-4 text-right text-emerald-600 font-sans font-bold">+29.5% ↑</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-4 font-sans font-medium text-gray-900">Cost of Goods Sold (COGS)</td>
-                  {analysis.annualFinancials.map((f) => (
+                  {safeFinancials.map((f) => (
                     <td key={f.year} className="py-2.5 px-4 text-right tabular-nums">${f.cogs?.toLocaleString()}</td>
                   ))}
                   <td className="py-2.5 px-4 text-right text-rose-600 font-sans font-bold">+43.4% ↑↑</td>
                 </tr>
                 <tr className="bg-rose-50/40 font-bold">
                   <td className="py-2.5 px-4 font-sans text-rose-900">Taxable Net Income</td>
-                  {analysis.annualFinancials.map((f) => (
+                  {safeFinancials.map((f) => (
                     <td key={f.year} className="py-2.5 px-4 text-right tabular-nums text-rose-900">${f.taxableIncome?.toLocaleString()}</td>
                   ))}
                   <td className="py-2.5 px-4 text-right text-rose-700 font-sans">-63.7% ↓↓</td>
@@ -315,20 +321,20 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
       {/* Tab 4: System Anomalies */}
       {activeTab === 'anomalies' && (
         <div className="space-y-3">
-          {analysis.anomalies.map((anm) => (
+          {safeAnomalies.map((anm) => (
             <div key={anm.id} className="p-4 rounded border bg-rose-50/50 border-rose-200 text-rose-950">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-xs">{anm.title}</h4>
+                    <h4 className="font-bold text-xs">{anm.title || (anm as any).area}</h4>
                     <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white border border-gray-300">
                       {anm.severity}
                     </span>
                   </div>
                   <p className="text-xs text-gray-700 mt-1">{anm.description}</p>
                   <p className="text-[11px] text-gray-600 mt-1 font-mono">
-                    Auditor Investigation: {anm.auditorNotes}
+                    Auditor Investigation: {anm.auditorNotes || (anm as any).recommendedAction}
                   </p>
                 </div>
               </div>

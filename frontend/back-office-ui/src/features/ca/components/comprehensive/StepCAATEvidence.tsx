@@ -148,12 +148,12 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
 
   // Filtered Exceptions
   const filteredExceptions = useMemo(() => {
-    return exceptions.filter((exc) => {
+    return (exceptions || []).filter((exc) => {
       const matchesSearch =
-        exc.transactionRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exc.counterparty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exc.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exc.details.toLowerCase().includes(searchTerm.toLowerCase());
+        (exc.transactionRef || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (exc.counterparty || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (exc.accountName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (exc.details || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesRule = selectedRuleFilter === 'ALL' || exc.ruleCode === selectedRuleFilter;
       const matchesRisk = selectedRiskFilter === 'ALL' || exc.riskLevel === selectedRiskFilter;
@@ -165,11 +165,11 @@ export const StepCAATEvidence: React.FC<StepCAATEvidenceProps> = ({
   }, [exceptions, searchTerm, selectedRuleFilter, selectedRiskFilter, selectedTaxHeadFilter, selectedStatusFilter]);
 
   // Statistics
-  const totalMined = caatAudit.totalRecordsMined || 18160;
-  const totalFlaggedAmount = exceptions.reduce((sum, e) => (e.status !== 'DISMISSED' ? sum + e.amount : sum), 0);
-  const criticalCount = exceptions.filter((e) => e.riskLevel === 'CRITICAL').length;
-  const highCount = exceptions.filter((e) => e.riskLevel === 'HIGH').length;
-  const pendingCount = exceptions.filter((e) => e.status === 'PENDING_REVIEW').length;
+  const totalMined = caatAudit?.totalRecordsMined || 18160;
+  const totalFlaggedAmount = (exceptions || []).reduce((sum, e) => (e.status !== 'DISMISSED' ? sum + (e.amount || 0) : sum), 0);
+  const criticalCount = (exceptions || []).filter((e) => e.riskLevel === 'CRITICAL').length;
+  const highCount = (exceptions || []).filter((e) => e.riskLevel === 'HIGH').length;
+  const pendingCount = (exceptions || []).filter((e) => e.status === 'PENDING_REVIEW').length;
 
   // --------------------------------------------------------------------------
   // WORKFLOW ACTION 1: Execute CAAT Engine (Multi-Phase Realistic Simulation)
