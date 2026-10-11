@@ -241,9 +241,20 @@ public class AuditWorkflowController {
             @PathVariable UUID anomalyId,
             @RequestBody ValidateAnomalyRequest request,
             @RequestHeader(value = "X-Actor-Id", defaultValue = "system") String actorId) {
+        String effectiveNotes = (request.getNotes() != null && !request.getNotes().isBlank())
+                ? request.getNotes()
+                : request.getReason();
         CaatAnomalyEntity result = workflowService.validateAnomaly(
-                caseId, anomalyId, request.getDecision(), request.getNotes(), actorId);
+                caseId, anomalyId, request.getDecision(), effectiveNotes, request.getAmendedAmount(), actorId);
         return ResponseEntity.ok(GenericResponse.success(result));
+    }
+
+    @PostMapping("/caat/promote-to-findings")
+    public ResponseEntity<GenericResponse<List<AuditFindingEntity>>> promoteCaatToFindings(
+            @PathVariable UUID caseId,
+            @RequestHeader(value = "X-Actor-Id", defaultValue = "system") String actorId) {
+        List<AuditFindingEntity> result = workflowService.promoteValidatedAnomaliesToFindings(caseId, actorId);
+        return ResponseEntity.ok(GenericResponse.success(result, result.size(), (long) result.size()));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -476,6 +487,8 @@ public class AuditWorkflowController {
     static class ValidateAnomalyRequest {
         private String decision;
         private String notes;
+        private String reason;
+        private java.math.BigDecimal amendedAmount;
     }
 
     @Data

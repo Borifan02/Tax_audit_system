@@ -30,10 +30,25 @@ const ID_MAP = {
   'fed.ja.member': '20000000-0000-0000-0099-000000000002',
   'fed.ja.tl': '10000000-0000-0000-0099-000000000001',
   'fed.ja.tl2': '10000000-0000-0000-0099-000000000002',
+  'u-tl-federal-lto1-ja-1': '10000000-0000-0000-0099-000000000001',
+  'u-tl-federal-lto1-joint-1': '10000000-0000-0000-0099-000000000001',
+  'teamleader-federal-lto1-ja-1': '10000000-0000-0000-0099-000000000001',
+  'teamleader-federal-lto1-ja-2': '10000000-0000-0000-0099-000000000002',
   'fed2.ja.chair': '20000000-0000-0000-0098-000000000001',
   'fed2.ja.member': '20000000-0000-0000-0098-000000000002',
   'fed2.ja.tl': '10000000-0000-0000-0098-000000000001',
   'fed2.ja.tl2': '10000000-0000-0000-0098-000000000002',
+  'u-tl-federal-lto2-ja-1': '10000000-0000-0000-0098-000000000001',
+  'u-tl-federal-lto2-joint-1': '10000000-0000-0000-0098-000000000001',
+  'teamleader-federal-lto2-ja-1': '10000000-0000-0000-0098-000000000001',
+  'teamleader-federal-lto2-ja-2': '10000000-0000-0000-0098-000000000002',
+  'or1.tl': '10000000-0000-0000-0004-000000000001',
+  'u-tl-or1-ja-1': '10000000-0000-0000-0004-000000000001',
+  'u-tl-or1-joint-1': '10000000-0000-0000-0004-000000000001',
+  'teamleader-or1-ja-1': '10000000-0000-0000-0004-000000000001',
+  'teamleader-aa1-ja-1': '10000000-0000-0000-0001-000000000001',
+  'teamleader-aa2-ja-1': '10000000-0000-0000-0002-000000000001',
+  'teamleader-aa3-ja-1': '10000000-0000-0000-0003-000000000001',
 };
 
 const AUDITOR_ID_MAP = {
@@ -56,18 +71,26 @@ const AUDITOR_ID_MAP = {
 };
 
 function resolveId(frontendId) {
-  return ID_MAP[frontendId] || frontendId;
+  if (!frontendId) return frontendId;
+  if (ID_MAP[frontendId]) return ID_MAP[frontendId];
+  try {
+    const session = JSON.parse(localStorage.getItem('mor_aps_session') || '{}');
+    if (frontendId === session?.id || frontendId === session?.username || frontendId === session?.legacyUsername) {
+      return ID_MAP[session?.legacyUsername] || session?.userId || frontendId;
+    }
+  } catch {}
+  return frontendId;
 }
 
 function resolveUserId(frontendId) {
-  return AUDITOR_ID_MAP[frontendId] || ID_MAP[frontendId] || frontendId;
+  return AUDITOR_ID_MAP[frontendId] || ID_MAP[frontendId] || resolveId(frontendId) || frontendId;
 }
 
 function getHeaders() {
   const token = localStorage.getItem('authToken');
   const session = JSON.parse(localStorage.getItem('mor_aps_session') || '{}');
   const userId = session?.id || '';
-  const actorId = resolveId(userId);
+  const actorId = resolveId(userId) || session?.userId || userId;
   
   return {
     'Content-Type': 'application/json',

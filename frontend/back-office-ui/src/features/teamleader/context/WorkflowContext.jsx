@@ -313,8 +313,29 @@ function workflowReducer(state, action) {
         [action.payload.caseId]: {
           ...state[action.payload.caseId],
           anomalies: (state[action.payload.caseId]?.anomalies || []).map(a =>
-            a.id === action.payload.anomalyId ? { ...a, decision: action.payload.decision, notes: action.payload.notes } : a
+            a.id === action.payload.anomalyId
+              ? {
+                  ...a,
+                  decision: action.payload.decision,
+                  validationStatus: action.payload.decision,
+                  notes: action.payload.notes,
+                  validationNotes: action.payload.notes,
+                  amendedAmount: action.payload.amendedAmount !== undefined && action.payload.amendedAmount !== null
+                    ? Number(action.payload.amendedAmount)
+                    : (action.payload.decision === 'REJECTED' ? 0 : (a.originalAmount ?? a.amount ?? 0)),
+                  validatedAt: new Date().toISOString(),
+                }
+              : a
           ),
+        },
+      };
+
+    case 'SET_FINDINGS':
+      return {
+        ...state,
+        [action.payload.caseId]: {
+          ...state[action.payload.caseId],
+          findings: action.payload.findings || [],
         },
       };
 
@@ -522,6 +543,15 @@ export function WorkflowProvider({ children }) {
           }
         }
 
+        const hydratedAnomalies = (data.anomalies || []).map(a => ({
+          ...a,
+          decision: a.validationStatus && a.validationStatus !== 'PENDING' ? a.validationStatus : (a.decision || null),
+          notes: a.validationNotes || a.notes || '',
+          amount: Number(a.originalAmount ?? a.expectedAmount ?? a.amount ?? 0),
+          originalAmount: Number(a.originalAmount ?? a.expectedAmount ?? a.amount ?? 0),
+          amendedAmount: a.amendedAmount !== null && a.amendedAmount !== undefined ? Number(a.amendedAmount) : Number(a.originalAmount ?? a.amount ?? 0),
+        }));
+
         const serverData = {
           caseId,
           currentStep: currentStep,
@@ -532,7 +562,11 @@ export function WorkflowProvider({ children }) {
           conference: data.conference || null,
           documentRequests: data.documentRequests || [],
           documents: data.documents || [],
-          anomalies: data.anomalies || [],
+          anomalies: hydratedAnomalies,
+          caatResults: hydratedAnomalies.length > 0 ? {
+            anomalies: hydratedAnomalies,
+            completedAt: hydratedAnomalies[0]?.runAt || new Date().toISOString(),
+          } : null,
           workingPapers: data.workingPapers || [],
           findings: data.findings || [],
           conclusions: data.conclusions || [],
@@ -647,21 +681,71 @@ export function WorkflowProvider({ children }) {
     }, []),
 
     // ─── Step 7: CAAT Analysis ───────────────────────────────────────────
-    runCAAT: useCallback((caseId, actorId, results) => {
+    runCAAT: useCallback(async (caseId, actorId, results) => {
+      const analysisTypes = results?.analysisTypes || [
+        'RATIO_ANALYSIS', 'THIRD_PARTY_MATCHING', 'TRANSACTION_ANALYSIS',
+        'REVENUE_ANALYSIS', 'EXPENSE_ANALYSIS', 'FRAUD_INDICATORS'
+      ];
+      try {
+        const res = await workflowAPI.runCAATAnalysis(caseId, analysisTypes);
+        const backendAnomalies = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        if (backendAnomalies.length > 0) {
+          const normalized = backendAnomalies.map(a => ({
+            ...a,
+            decision: a.validationStatus && a.validationStatus !== 'PENDING' ? a.validationStatus : null,
+            notes: a.validationNotes || '',
+            amount: Number(a.originalAmount ?? a.expectedAmount ?? 0),
+            originalAmount: Number(a.originalAmount ?? a.expectedAmount ?? 0),
+            amendedAmount: a.amendedAmount !== null && a.amendedAmount !== undefined ? Number(a.amendedAmount) : Number(a.originalAmount ?? 0),
+          }));
+          dispatch({
+            type: 'RUN_CAAT',
+            payload: {
+              caseId,
+              actorId,
+              results: {
+                ...(results || {}),
+                analysisTypes,
+                anomalies: normalized,
+                completedAt: new Date().toISOString(),
+              },
+            },
+          });
+          return normalized;
+        }
+      } catch (err) {
+        console.warn('[WorkflowAPI] runCAAT failed, using fallback results:', err.message);
+      }
       dispatch({ type: 'RUN_CAAT', payload: { caseId, actorId, results } });
-      // Backend expects { analysisTypes: [...] } — extract from results
-      const analysisTypes = results.analysisTypes || ['REVENUE_VS_BANK', 'EXPENSE_RATIO', 'PATTERN_DETECTION'];
-      fireAPI('runCAAT', workflowAPI.runCAATAnalysis(caseId, analysisTypes));
+      return results?.anomalies || [];
     }, []),
 
-    validateAnomaly: useCallback((caseId, anomalyId, decision, notes) => {
-      dispatch({ type: 'VALIDATE_ANOMALY', payload: { caseId, anomalyId, decision, notes } });
-      fireAPI('validateAnomaly', workflowAPI.validateAnomaly(caseId, anomalyId, decision, notes));
+    validateAnomaly: useCallback(async (caseId, anomalyId, decision, notes, amendedAmount = null) => {
+      const normDecision = decision === 'ACCEPT' ? 'ACCEPTED' : decision === 'AMEND' ? 'AMENDED' : decision === 'REJECT' ? 'REJECTED' : decision;
+      dispatch({ type: 'VALIDATE_ANOMALY', payload: { caseId, anomalyId, decision: normDecision, notes, amendedAmount } });
+      try {
+        await workflowAPI.validateAnomaly(caseId, anomalyId, normDecision, notes, amendedAmount);
+      } catch (err) {
+        console.warn('[WorkflowAPI] validateAnomaly failed:', err.message);
+      }
+    }, []),
+
+    promoteCaatToFindings: useCallback(async (caseId, actorId) => {
+      try {
+        const res = await workflowAPI.promoteCaatToFindings(caseId);
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        if (list.length > 0) {
+          dispatch({ type: 'SET_FINDINGS', payload: { caseId, findings: list } });
+          return list;
+        }
+      } catch (err) {
+        console.warn('[WorkflowAPI] promoteCaatToFindings failed:', err.message);
+      }
+      return [];
     }, []),
 
     completeCAAT: useCallback((caseId, actorId) => {
       dispatch({ type: 'COMPLETE_CAAT', payload: { caseId, actorId } });
-      // No dedicated backend endpoint — status is tracked via individual anomaly validations
     }, []),
 
     // ─── Step 8: Audit Testing ───────────────────────────────────────────

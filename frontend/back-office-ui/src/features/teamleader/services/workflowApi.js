@@ -20,6 +20,9 @@ const ID_MAP = {
   'fed.ja.chair': '20000000-0000-0000-0099-000000000001',
   'fed.ja.member': '20000000-0000-0000-0099-000000000002',
   'fed.ja.tl': '10000000-0000-0000-0099-000000000001',
+  'u-tl-federal-lto1-ja-1': '10000000-0000-0000-0099-000000000001',
+  'u-tl-federal-lto1-joint-1': '10000000-0000-0000-0099-000000000001',
+  'teamleader-federal-lto1-ja-1': '10000000-0000-0000-0099-000000000001',
   'fed.ja.auditor1': 'a0000001-0000-0000-0099-000000000001',
   'fed.ja.auditor2': 'a0000001-0000-0000-0099-000000000002',
   'fed.ja.auditor3': 'a0000001-0000-0000-0099-000000000003',
@@ -28,6 +31,9 @@ const ID_MAP = {
   'fed2.ja.chair': '20000000-0000-0000-0098-000000000001',
   'fed2.ja.member': '20000000-0000-0000-0098-000000000002',
   'fed2.ja.tl': '10000000-0000-0000-0098-000000000001',
+  'u-tl-federal-lto2-ja-1': '10000000-0000-0000-0098-000000000001',
+  'u-tl-federal-lto2-joint-1': '10000000-0000-0000-0098-000000000001',
+  'teamleader-federal-lto2-ja-1': '10000000-0000-0000-0098-000000000001',
   'fed2.ja.auditor1': 'a0000001-0000-0000-0098-000000000001',
   'fed2.ja.auditor2': 'a0000001-0000-0000-0098-000000000002',
   'fed2.ja.auditor3': 'a0000001-0000-0000-0098-000000000003',
@@ -35,11 +41,23 @@ const ID_MAP = {
   'fed2.ja.auditor5': 'a0000001-0000-0000-0098-000000000005',
 };
 
+function resolveActorId(id) {
+  if (!id) return id;
+  if (ID_MAP[id]) return ID_MAP[id];
+  try {
+    const session = JSON.parse(localStorage.getItem('mor_aps_session') || '{}');
+    if (id === session?.id || id === session?.username || id === session?.legacyUsername) {
+      return ID_MAP[session?.legacyUsername] || session?.userId || id;
+    }
+  } catch {}
+  return id;
+}
+
 function getHeaders() {
   const token = localStorage.getItem('authToken');
   const session = JSON.parse(localStorage.getItem('mor_aps_session') || '{}');
   const userId = session?.id || '';
-  const actorId = ID_MAP[userId] || userId;
+  const actorId = resolveActorId(userId) || session?.userId || userId;
   return {
     'Content-Type': 'application/json',
     'X-Actor-Id': actorId,
@@ -335,13 +353,29 @@ export const workflowAPI = {
   },
 
   /** Validate anomaly (accept/amend/reject) */
-  validateAnomaly: async (caseId, anomalyId, decision, notes) => {
+  validateAnomaly: async (caseId, anomalyId, decision, notes, amendedAmount = null) => {
     const response = await fetch(`${API_BASE}/${caseId}/caat/anomalies/${anomalyId}/validate`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ decision, notes }),
+      body: JSON.stringify({ decision, notes, reason: notes, amendedAmount }),
     });
-    if (!response.ok) throw new Error('Failed to validate anomaly');
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to validate anomaly');
+    }
+    return response.json();
+  },
+
+  /** Promote validated CAAT anomalies (ACCEPTED/AMENDED) to draft Findings */
+  promoteCaatToFindings: async (caseId) => {
+    const response = await fetch(`${API_BASE}/${caseId}/caat/promote-to-findings`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to promote CAAT anomalies to findings');
+    }
     return response.json();
   },
 

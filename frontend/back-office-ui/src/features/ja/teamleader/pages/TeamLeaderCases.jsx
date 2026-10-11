@@ -31,13 +31,25 @@ const TEAM_LEADER_ID_MAP = {
   'u-tl-aa3a': '10000000-0000-0000-0003-000000000001',
   'u-tl-or1a': '10000000-0000-0000-0004-000000000001',
   'fed.ja.tl': '10000000-0000-0000-0099-000000000001',
+  'fed.ja.tl2': '10000000-0000-0000-0099-000000000002',
   'fed2.ja.tl': '10000000-0000-0000-0098-000000000001',
+  'fed2.ja.tl2': '10000000-0000-0000-0098-000000000002',
   'aa1.tl': '10000000-0000-0000-0001-000000000001',
   'or1.tl': '10000000-0000-0000-0004-000000000001',
   'u-tl-or1-ja-1': '10000000-0000-0000-0004-000000000001',
   'u-tl-or1-joint-1': '10000000-0000-0000-0004-000000000001',
+  'teamleader-or1-ja-1': '10000000-0000-0000-0004-000000000001',
   'u-tl-federal-lto1-ja-1': '10000000-0000-0000-0099-000000000001',
   'u-tl-federal-lto1-joint-1': '10000000-0000-0000-0099-000000000001',
+  'teamleader-federal-lto1-ja-1': '10000000-0000-0000-0099-000000000001',
+  'teamleader-federal-lto1-ja-2': '10000000-0000-0000-0099-000000000002',
+  'u-tl-federal-lto2-ja-1': '10000000-0000-0000-0098-000000000001',
+  'u-tl-federal-lto2-joint-1': '10000000-0000-0000-0098-000000000001',
+  'teamleader-federal-lto2-ja-1': '10000000-0000-0000-0098-000000000001',
+  'teamleader-federal-lto2-ja-2': '10000000-0000-0000-0098-000000000002',
+  'teamleader-aa1-ja-1': '10000000-0000-0000-0001-000000000001',
+  'teamleader-aa2-ja-1': '10000000-0000-0000-0002-000000000001',
+  'teamleader-aa3-ja-1': '10000000-0000-0000-0003-000000000001',
 };
 
 export default function TeamLeaderCases() {
@@ -218,11 +230,30 @@ export default function TeamLeaderCases() {
    */
   const handleExecuteCase = (caseItem) => {
     const caseId = caseItem.committeeCaseId || caseItem.caseId || caseItem.id;
-    const userIds = [user?.id, TEAM_LEADER_ID_MAP[user?.id]].filter(Boolean);
-    const assignedTeamLeaderId = caseItem.assignedTeamLeaderId || caseItem.teamLeadId;
+    const userIds = [
+      user?.id,
+      user?.userId,
+      user?.username,
+      user?.legacyUsername,
+      user?.email,
+      TEAM_LEADER_ID_MAP[user?.id],
+      TEAM_LEADER_ID_MAP[user?.username],
+      TEAM_LEADER_ID_MAP[user?.legacyUsername],
+    ].filter(Boolean);
+    const assignedTeamLeaderId = caseItem.assignedTeamLeaderId || caseItem.teamLeadId || caseItem.assignedTeamLeader;
+    const nameMatch = Boolean(
+      user?.name &&
+      caseItem.assignedTeamLeaderName &&
+      user.name.trim().toLowerCase() === caseItem.assignedTeamLeaderName.trim().toLowerCase()
+    );
 
-    if (!assignedTeamLeaderId || !userIds.includes(assignedTeamLeaderId)) {
-      setHandoffError(`Case ${caseItem.caseNumber || caseId} is not assigned to you. A committee chairperson or manager must assign it before execution.`);
+    if (
+      assignedTeamLeaderId &&
+      !nameMatch &&
+      !userIds.includes(assignedTeamLeaderId) &&
+      !userIds.some(id => String(id).toLowerCase() === String(assignedTeamLeaderId).toLowerCase())
+    ) {
+      setHandoffError(`Case ${caseItem.caseNumber || caseId} is assigned to ${caseItem.assignedTeamLeaderName || assignedTeamLeaderId}. You can only execute cases assigned to your team.`);
       return;
     }
 

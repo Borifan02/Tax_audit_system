@@ -15,6 +15,7 @@ import StatusBadge from '../components/StatusBadge';
 import Card from '../../../components/Card';
 import EntryConferencePanel from '../components/EntryConferencePanel.jsx';
 import FindingsPanel from '../components/FindingsPanel.jsx';
+import JointCaatAnalysisPanel from '../components/JointCaatAnalysisPanel.jsx';
 import { UnifiedCaseInfo } from '../../../components/shared/UnifiedCaseDetail.jsx';
 import {
   ArrowLeft, ArrowRight, ArrowRightLeft, CheckCircle, Clock, FileText, Users,
@@ -364,51 +365,16 @@ export default function CaseExecution({ caseId, caseData, onBack, initialStep })
 
       case 'CAAT_ANALYSIS':
         return (
-          <Card className="p-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">CAAT / Automated Analysis</h3>
-            <div className="space-y-4">
-              {workflow.anomalies?.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl p-4">
-                    <p className="font-medium text-violet-800 dark:text-violet-200">
-                      {workflow.anomalies.length} anomalies detected
-                    </p>
-                  </div>
-                  {workflow.anomalies.map((anomaly) => (
-                    <div key={anomaly.id} className={`p-4 rounded-xl border ${
-                      anomaly.decision === 'ACCEPT' ? 'border-green-300 bg-green-50 dark:bg-green-900/10' :
-                      anomaly.decision === 'REJECT' ? 'border-red-300 bg-red-50 dark:bg-red-900/10' :
-                      'border-gray-200 dark:border-gray-700'
-                    }`}>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{anomaly.description}</p>
-                          <p className="text-xs text-gray-500 mt-1">Severity: {anomaly.severity} · Amount: ETB {anomaly.amount?.toLocaleString()}</p>
-                        </div>
-                        {!anomaly.decision && isAuditor && (
-                          <div className="flex gap-2">
-                            <button onClick={() => actions.validateAnomaly(caseId, anomaly.id, 'ACCEPT', 'Confirmed')} className="px-3 py-1 bg-green-600 text-white rounded text-xs font-medium">Accept</button>
-                            <button onClick={() => actions.validateAnomaly(caseId, anomaly.id, 'REJECT', 'False alarm')} className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium">Reject</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {isAuditor && workflow.anomalies.every(a => a.decision) && (
-                    <button onClick={handleCompleteCAAT} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
-                      <ArrowRight size={18} /> Complete CAAT — Proceed to Testing
-                    </button>
-                  )}
-                </div>
-              ) : isAuditor ? (
-                <button onClick={handleRunCAAT} className="px-6 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 font-medium flex items-center gap-2">
-                  <Cpu size={18} /> Run CAAT Analysis
-                </button>
-              ) : (
-                <p className="text-sm text-gray-500">Auditor will run CAAT analysis on collected documents...</p>
-              )}
-            </div>
-          </Card>
+          <JointCaatAnalysisPanel
+            caseId={caseId}
+            caseData={caseData}
+            workflow={workflow}
+            actions={actions}
+            actorId={user?.id || 'system'}
+            mode={isAuditor ? 'AUDITOR' : 'TEAM_LEADER'}
+            onCompleteStep={handleCompleteCAAT}
+            onNavigateToFindings={() => setActiveStepTab('FINDINGS')}
+          />
         );
 
       case 'AUDIT_TESTING':

@@ -65,22 +65,34 @@ public class TeamLeaderDashboardController {
         log.info("Fetching team leader dashboard for: {}", teamLeaderId);
         
         try {
-            // Fetch pending plans for review
-            List<AuditPlanRecordEntity> pendingPlans = 
-                planRepository.findPendingPlansForTeamLeader(teamLeaderId);
-            
-            // Fetch assigned cases
-            List<ApAuditCaseEntity> assignedCases = 
-                caseRepository.findByAssignedTeamLeaderId(teamLeaderId);
-            
-            // Count approved and rejected plans
-            long approvedCount = planRepository
-                .findByTeamLeadIdAndStatusOrderByCreatedAtDesc(teamLeaderId, "APPROVED")
-                .size();
-            
-            long rejectedCount = planRepository
-                .findByTeamLeadIdAndStatusOrderByCreatedAtDesc(teamLeaderId, "REJECTED")
-                .size();
+            Set<String> aliases = workflowService.resolveTeamLeaderAliases(teamLeaderId);
+            if (aliases.isEmpty()) aliases = Set.of(teamLeaderId);
+
+            // Fetch pending plans for review across all aliases (deduplicated)
+            Map<UUID, AuditPlanRecordEntity> pendingMap = new LinkedHashMap<>();
+            Map<UUID, ApAuditCaseEntity> casesMap = new LinkedHashMap<>();
+            Set<UUID> approvedIds = new HashSet<>();
+            Set<UUID> rejectedIds = new HashSet<>();
+
+            for (String alias : aliases) {
+                for (AuditPlanRecordEntity p : planRepository.findPendingPlansForTeamLeader(alias)) {
+                    pendingMap.putIfAbsent(p.getId(), p);
+                }
+                for (ApAuditCaseEntity c : caseRepository.findByAssignedTeamLeaderId(alias)) {
+                    casesMap.putIfAbsent(c.getId(), c);
+                }
+                for (AuditPlanRecordEntity p : planRepository.findByTeamLeadIdAndStatusOrderByCreatedAtDesc(alias, "APPROVED")) {
+                    approvedIds.add(p.getId());
+                }
+                for (AuditPlanRecordEntity p : planRepository.findByTeamLeadIdAndStatusOrderByCreatedAtDesc(alias, "REJECTED")) {
+                    rejectedIds.add(p.getId());
+                }
+            }
+
+            List<AuditPlanRecordEntity> pendingPlans = new ArrayList<>(pendingMap.values());
+            List<ApAuditCaseEntity> assignedCases = new ArrayList<>(casesMap.values());
+            long approvedCount = approvedIds.size();
+            long rejectedCount = rejectedIds.size();
             
             // Map plans to DTOs with enriched case data
             List<TeamLeaderPlanReviewDto> planDtos = pendingPlans.stream()
@@ -95,8 +107,8 @@ public class TeamLeaderDashboardController {
             dashboard.put("plansRejected", rejectedCount);
             dashboard.put("pendingPlans", planDtos);
             
-            log.info("Dashboard retrieved for team leader {} with {} pending plans", 
-                teamLeaderId, pendingPlans.size());
+            log.info("Dashboard retrieved for team leader {} (aliases={}) with {} pending plans", 
+                teamLeaderId, aliases.size(), pendingPlans.size());
             
             return ResponseEntity.ok(GenericResponse.success(dashboard));
             
@@ -111,13 +123,6 @@ public class TeamLeaderDashboardController {
      * Get all pending plans for team leader (paginated).
      * 
      * GET /api/v1/backoffice/ap/team-leader/plans?teamLeaderId={id}&page=0&size=10
-     * 
-     * Query Parameters:
-     * - teamLeaderId: Team lead identifier
-     * - page: Page number (0-indexed)
-     * - size: Page size (default 10)
-     * 
-     * Returns paginated list of pending plans.
      */
     @GetMapping("/plans")
     public ResponseEntity<GenericResponse<Page<TeamLeaderPlanReviewDto>>> getPendingPlans(
@@ -130,9 +135,16 @@ public class TeamLeaderDashboardController {
         
         try {
             Pageable pageable = PageRequest.of(page, size);
-            
-            List<AuditPlanRecordEntity> allPlans = 
-                planRepository.findPendingPlansForTeamLeader(teamLeaderId);
+            Set<String> aliases = workflowService.resolveTeamLeaderAliases(teamLeaderId);
+            if (aliases.isEmpty()) aliases = Set.of(teamLeaderId);
+
+            Map<UUID, AuditPlanRecordEntity> pendingMap = new LinkedHashMap<>();
+            for (String alias : aliases) {
+                for (AuditPlanRecordEntity p : planRepository.findPendingPlansForTeamLeader(alias)) {
+                    pendingMap.putIfAbsent(p.getId(), p);
+                }
+            }
+            List<AuditPlanRecordEntity> allPlans = new ArrayList<>(pendingMap.values());
             
             List<TeamLeaderPlanReviewDto> dtos = allPlans.stream()
                 .map(this::enrichPlanWithCaseData)
@@ -159,16 +171,6 @@ public class TeamLeaderDashboardController {
     
     /**
      * Approve a submitted plan.
-     * 
-     * POST /api/v1/backoffice/ap/team-leader/plans/{planId}/approve
-     * 
-     * Request:
-     * {
-     *   "teamLeaderId": "TEAM_LEAD_001",
-     *   "comments": "Plan looks comprehensive. Approved for execution."
-     * }
-     * 
-     * Response: Updated plan with status=APPROVED
      */
     @PostMapping("/plans/{planId}/approve")
     public ResponseEntity<GenericResponse<TeamLeaderPlanReviewDto>> approvePlan(
@@ -182,8 +184,8 @@ public class TeamLeaderDashboardController {
             AuditPlanRecordEntity plan = planRepository.findById(planId)
                 .orElseThrow(() -> new IllegalArgumentException("Plan not found: " + planId));
             
-            // Verify team lead owns this plan
-            if (!teamLeaderId.equals(plan.getTeamLeadId())) {
+            // Verify team lead owns this plan (supporting all aliases)
+            if (plan.getTeamLeadId() != null && !workflowService.isSameTeamLeaderPublic(teamLeaderId, plan.getTeamLeadId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(GenericResponse.error("FORBIDDEN", "Not authorized to review this plan"));
             }
@@ -215,16 +217,6 @@ public class TeamLeaderDashboardController {
     
     /**
      * Reject a submitted plan.
-     * 
-     * POST /api/v1/backoffice/ap/team-leader/plans/{planId}/reject
-     * 
-     * Request (required):
-     * {
-     *   "teamLeaderId": "TEAM_LEAD_001",
-     *   "reason": "Resource allocation needs adjustment"
-     * }
-     * 
-     * Response: Updated plan with status=REJECTED
      */
     @PostMapping("/plans/{planId}/reject")
     public ResponseEntity<GenericResponse<TeamLeaderPlanReviewDto>> rejectPlan(
@@ -240,8 +232,8 @@ public class TeamLeaderDashboardController {
             AuditPlanRecordEntity plan = planRepository.findById(planId)
                 .orElseThrow(() -> new IllegalArgumentException("Plan not found: " + planId));
             
-            // Verify team lead owns this plan
-            if (!teamLeaderId.equals(plan.getTeamLeadId())) {
+            // Verify team lead owns this plan (supporting all aliases)
+            if (plan.getTeamLeadId() != null && !workflowService.isSameTeamLeaderPublic(teamLeaderId, plan.getTeamLeadId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(GenericResponse.error("FORBIDDEN", "Not authorized to review this plan"));
             }
@@ -274,16 +266,6 @@ public class TeamLeaderDashboardController {
     
     /**
      * Request plan revision.
-     * 
-     * POST /api/v1/backoffice/ap/team-leader/plans/{planId}/request-revision
-     * 
-     * Request (required):
-     * {
-     *   "teamLeaderId": "TEAM_LEAD_001",
-     *   "comments": "Please clarify methodology section and add timeline details"
-     * }
-     * 
-     * Response: Updated plan with status=REVISION_REQUESTED
      */
     @PostMapping("/plans/{planId}/request-revision")
     public ResponseEntity<GenericResponse<TeamLeaderPlanReviewDto>> requestRevision(
@@ -300,8 +282,8 @@ public class TeamLeaderDashboardController {
             AuditPlanRecordEntity plan = planRepository.findById(planId)
                 .orElseThrow(() -> new IllegalArgumentException("Plan not found: " + planId));
             
-            // Verify team lead owns this plan
-            if (!teamLeaderId.equals(plan.getTeamLeadId())) {
+            // Verify team lead owns this plan (supporting all aliases)
+            if (plan.getTeamLeadId() != null && !workflowService.isSameTeamLeaderPublic(teamLeaderId, plan.getTeamLeadId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(GenericResponse.error("FORBIDDEN", "Not authorized to review this plan"));
             }

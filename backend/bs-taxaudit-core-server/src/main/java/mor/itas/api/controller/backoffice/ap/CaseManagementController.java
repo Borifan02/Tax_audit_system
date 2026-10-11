@@ -96,50 +96,73 @@ public class CaseManagementController {
                 cases = new ArrayList<>(dedup.values());
             } else if (effectiveTeamLeader != null && !effectiveTeamLeader.isBlank()) {
                 // ── Team leader view ─────────────────────────────────────────
-                cases = new ArrayList<>(caseRepository.findByAssignedTeamLeaderId(effectiveTeamLeader));
-
-                // If no results or to be thorough, attempt canonical resolution
-                String canonicalTL = resolveTeamLeaderCanonicalId(effectiveTeamLeader);
-                if (canonicalTL != null && !canonicalTL.equalsIgnoreCase(effectiveTeamLeader)) {
-                    List<ApAuditCaseEntity> extra = caseRepository.findByAssignedTeamLeaderId(canonicalTL);
-                    for (ApAuditCaseEntity c : extra) {
-                        boolean exists = false;
-                        for (ApAuditCaseEntity ex : cases) {
-                            if (ex.getId().equals(c.getId())) { exists = true; break; }
-                        }
-                        if (!exists) cases.add(c);
+                Set<String> tlAliases = new LinkedHashSet<>();
+                String trimmedTL = effectiveTeamLeader.trim();
+                tlAliases.add(trimmedTL);
+                if (trimmedTL.equalsIgnoreCase("fed2.ja.tl") || trimmedTL.toLowerCase().contains("berhanu.bekele")) {
+                    tlAliases.add("teamleader-federal-lto2-ja-1");
+                    tlAliases.add("u-tl-federal-lto2-ja-1");
+                    tlAliases.add("10000000-0000-0000-0098-000000000001");
+                } else if (trimmedTL.equalsIgnoreCase("fed.ja.tl")) {
+                    tlAliases.add("teamleader-federal-lto1-ja-1");
+                    tlAliases.add("u-tl-federal-lto1-ja-1");
+                }
+                for (String a : new ArrayList<>(tlAliases)) {
+                    if (a.startsWith("u-tl-")) {
+                        tlAliases.add(a.replace("u-tl-", "teamleader-"));
+                    } else if (a.startsWith("teamleader-")) {
+                        tlAliases.add(a.replace("teamleader-", "u-tl-"));
+                    }
+                }
+                for (String a : new ArrayList<>(tlAliases)) {
+                    if (a.contains("-ja-")) tlAliases.add(a.replace("-ja-", "-joint-"));
+                    if (a.contains("-joint-")) tlAliases.add(a.replace("-joint-", "-ja-"));
+                }
+                for (String a : new ArrayList<>(tlAliases)) {
+                    String canonicalTL = resolveTeamLeaderCanonicalId(a);
+                    if (canonicalTL != null) {
+                        tlAliases.add(canonicalTL);
+                        if (canonicalTL.startsWith("u-tl-")) tlAliases.add(canonicalTL.replace("u-tl-", "teamleader-"));
+                        if (canonicalTL.startsWith("teamleader-")) tlAliases.add(canonicalTL.replace("teamleader-", "u-tl-"));
                     }
                 }
 
-                // Also check if teamLeader matches User's UUID / username from UserManagementUseCase
+                Map<UUID, ApAuditCaseEntity> tlCaseMap = new LinkedHashMap<>();
+                for (String alias : tlAliases) {
+                    for (ApAuditCaseEntity c : caseRepository.findByAssignedTeamLeaderId(alias)) {
+                        tlCaseMap.putIfAbsent(c.getId(), c);
+                    }
+                }
+                cases = new ArrayList<>(tlCaseMap.values());
+
+                // Also check if any resolved alias matches User's UUID / username / email from UserManagementUseCase
                 if (userManagementUseCase != null) {
                     try {
                         List<mor.itas.domain.model.ap.User> allUsers = userManagementUseCase.getAllUsers();
                         for (mor.itas.domain.model.ap.User u : allUsers) {
-                            boolean matches = (u.getUsername() != null && u.getUsername().equalsIgnoreCase(effectiveTeamLeader))
-                                           || (u.getUserId() != null && u.getUserId().toString().equalsIgnoreCase(effectiveTeamLeader))
-                                           || (u.getEmail() != null && u.getEmail().equalsIgnoreCase(effectiveTeamLeader));
+                            boolean matches = false;
+                            for (String alias : tlAliases) {
+                                if ((u.getUsername() != null && u.getUsername().equalsIgnoreCase(alias))
+                                        || (u.getUserId() != null && u.getUserId().toString().equalsIgnoreCase(alias))
+                                        || (u.getEmail() != null && u.getEmail().equalsIgnoreCase(alias))) {
+                                    matches = true;
+                                    break;
+                                }
+                            }
                             if (matches) {
                                 if (u.getUserId() != null) {
                                     for (ApAuditCaseEntity c : caseRepository.findByAssignedTeamLeaderId(u.getUserId().toString())) {
-                                        boolean exists = false;
-                                        for (ApAuditCaseEntity ex : cases) {
-                                            if (ex.getId().equals(c.getId())) { exists = true; break; }
-                                        }
-                                        if (!exists) cases.add(c);
+                                        tlCaseMap.putIfAbsent(c.getId(), c);
                                     }
                                 }
                                 if (u.getUsername() != null) {
                                     for (ApAuditCaseEntity c : caseRepository.findByAssignedTeamLeaderId(u.getUsername())) {
-                                        boolean exists = false;
-                                        for (ApAuditCaseEntity ex : cases) {
-                                            if (ex.getId().equals(c.getId())) { exists = true; break; }
-                                        }
-                                        if (!exists) cases.add(c);
+                                        tlCaseMap.putIfAbsent(c.getId(), c);
                                     }
                                 }
                             }
                         }
+                        cases = new ArrayList<>(tlCaseMap.values());
                     } catch (Exception ignored) {}
                 }
 

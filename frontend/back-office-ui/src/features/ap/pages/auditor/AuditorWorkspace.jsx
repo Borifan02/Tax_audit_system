@@ -27,6 +27,7 @@ import { auditorAPI } from './services/api.js';
 import EntryConferencePanel from '../../../teamleader/components/EntryConferencePanel.jsx';
 import DocumentRequestPanel from '../../../teamleader/components/DocumentRequestPanel.jsx';
 import FindingsPanel from '../../../teamleader/components/FindingsPanel.jsx';
+import JointCaatAnalysisPanel from '../../../teamleader/components/JointCaatAnalysisPanel.jsx';
 
 // ── Step Icons Map ───────────────────────────────────────────────────────────
 const STEP_ICONS = {
@@ -882,10 +883,18 @@ export default function AuditorWorkspace({ caseData, onBack, initialStep }) {
 
       case 'CAAT_ANALYSIS':
         return (
-          <CAATAnalysisPanel
+          <JointCaatAnalysisPanel
+            caseId={caseId}
             caseData={caseData}
-            onRun={handleRunCAAT}
-            onComplete={() => setActiveStep('AUDIT_TESTING')}
+            workflow={workflow}
+            actions={actions}
+            actorId={user?.id || 'system'}
+            mode="AUDITOR"
+            onCompleteStep={() => {
+              actions.completeCAAT?.(caseId, user?.id);
+              setActiveStep('AUDIT_TESTING');
+            }}
+            onNavigateToFindings={() => setActiveStep('FINDINGS')}
           />
         );
 
