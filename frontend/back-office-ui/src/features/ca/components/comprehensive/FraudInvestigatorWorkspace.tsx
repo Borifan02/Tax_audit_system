@@ -196,7 +196,7 @@ export const FraudInvestigatorWorkspace: React.FC<FraudInvestigatorWorkspaceProp
                     <div className="text-2xs text-slate-500 flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                       <span>TIN: {c.tin}</span>
                       <span className="font-bold text-rose-900 font-mono">
-                        ${(c.totalAssessment || 0).toLocaleString()}
+                        ${(c.totalAssessment || 0)?.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -242,7 +242,7 @@ export const FraudInvestigatorWorkspace: React.FC<FraudInvestigatorWorkspaceProp
                       Estimated Evasion & Due
                     </span>
                     <span className="text-xl font-bold font-mono text-rose-950">
-                      ${(assessmentNotice?.totalAssessmentDue || 0).toLocaleString()}
+                      ${(assessmentNotice?.totalAssessmentDue || 0)?.toLocaleString()}
                     </span>
                   </div>
                 </div>

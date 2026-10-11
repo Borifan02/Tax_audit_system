@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface QaReviewCaseRepository extends JpaRepository<QaReviewCaseEntity, UUID> {
     boolean existsByAuditCaseId(UUID auditCaseId);
+    java.util.Optional<QaReviewCaseEntity> findByCaseNumber(String caseNumber);
 }

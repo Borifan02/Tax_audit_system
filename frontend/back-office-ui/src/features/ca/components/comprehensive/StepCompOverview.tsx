@@ -251,10 +251,10 @@ export const StepCompOverview: React.FC<StepCompOverviewProps> = ({
                   <div key={zone.branchCode} className="p-3 bg-gray-50 rounded border border-gray-200 flex items-center justify-between text-xs">
                     <div>
                       <span className="font-bold text-gray-900 block">{zone.zoneName}</span>
-                      <span className="text-gray-500 font-mono">{zone.branchCode} · Declared Tax: ${zone.taxDeclared.toLocaleString()}</span>
+                      <span className="text-gray-500 font-mono">{zone.branchCode} · Declared Tax: ${zone.taxDeclared?.toLocaleString()}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-rose-700 font-bold font-mono text-sm block">+${zone.auditAdjustment.toLocaleString()}</span>
+                      <span className="text-rose-700 font-bold font-mono text-sm block">+${zone.auditAdjustment?.toLocaleString()}</span>
                       <span className="text-[10px] text-gray-500 uppercase font-semibold">Audit Adjustment</span>
                     </div>
                   </div>
@@ -278,7 +278,7 @@ export const StepCompOverview: React.FC<StepCompOverviewProps> = ({
 
             <div className="mt-3">
               <div className="text-3xl font-bold font-mono tabular-nums text-gray-900 tracking-tight">
-                ${stats.totalTaxImpact.toLocaleString()}
+                ${stats.totalTaxImpact?.toLocaleString()}
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 Comprising principal tax shortfalls across CIT, VAT, and PAYE, statutory 20% penalty, and cumulative interest across {stats.findings} confirmed findings.

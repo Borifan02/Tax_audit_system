@@ -29,7 +29,7 @@ public class QaController {
 
     @GetMapping("/{caseId}")
     @PreAuthorize("hasAnyRole('QA_OFFICER', 'QA_TEAM_LEADER', 'QA_DIRECTOR')")
-    public ResponseEntity<?> getQaCase(@PathVariable UUID caseId) {
+    public ResponseEntity<?> getQaCase(@PathVariable String caseId) {
         return ResponseEntity.ok(reviewService.getQaCase(caseId));
     }
 
@@ -45,37 +45,41 @@ public class QaController {
 
     @PutMapping("/{caseId}")
     @PreAuthorize("hasRole('QA_OFFICER')")
-    public ResponseEntity<?> updateQaCase(@PathVariable UUID caseId, @RequestBody Map<String, Object> updates) {
+    public ResponseEntity<?> updateQaCase(@PathVariable String caseId, @RequestBody Map<String, Object> updates) {
         // Dummy endpoint to satisfy frontend save
         return ResponseEntity.ok(updates);
     }
 
     @PutMapping("/{caseId}/dimensions/{dimId}")
     @PreAuthorize("hasRole('QA_OFFICER')")
-    public ResponseEntity<?> updateDimension(@PathVariable UUID caseId, @PathVariable String dimId, @RequestBody Map<String, Object> updates) {
+    public ResponseEntity<?> updateDimension(@PathVariable String caseId, @PathVariable String dimId, @RequestBody Map<String, Object> updates) {
         // Dummy endpoint to satisfy frontend dimension updates
         return ResponseEntity.ok(updates);
     }
 
     @PostMapping("/{caseId}/action-plan")
     @PreAuthorize("hasRole('QA_OFFICER')")
-    public ResponseEntity<?> submitActionPlan(@PathVariable UUID caseId,
+    public ResponseEntity<?> submitActionPlan(@PathVariable String caseId,
                                               @Valid @RequestBody SubmitQaActionPlanRequest request,
                                               @RequestHeader(value = "X-Actor-Id", defaultValue = "test-user") String actorId) {
-        return ResponseEntity.ok(executionService.submitActionPlan(caseId, request, actorId));
+        UUID auditCaseUuid = null;
+        try { auditCaseUuid = UUID.fromString(caseId); } catch (Exception e) { auditCaseUuid = UUID.nameUUIDFromBytes(caseId.getBytes()); }
+        return ResponseEntity.ok(executionService.submitActionPlan(auditCaseUuid, request, actorId));
     }
 
     @PostMapping("/{caseId}/action-plan/review")
     @PreAuthorize("hasRole('QA_TEAM_LEADER')")
-    public ResponseEntity<?> reviewActionPlan(@PathVariable UUID caseId,
+    public ResponseEntity<?> reviewActionPlan(@PathVariable String caseId,
                                               @Valid @RequestBody ReviewQaActionPlanRequest request,
                                               @RequestHeader(value = "X-Actor-Id", defaultValue = "test-user") String actorId) {
-        return ResponseEntity.ok(executionService.reviewActionPlan(caseId, request, actorId));
+        UUID auditCaseUuid = null;
+        try { auditCaseUuid = UUID.fromString(caseId); } catch (Exception e) { auditCaseUuid = UUID.nameUUIDFromBytes(caseId.getBytes()); }
+        return ResponseEntity.ok(executionService.reviewActionPlan(auditCaseUuid, request, actorId));
     }
 
     @PostMapping("/{caseId}/workflow")
     @PreAuthorize("hasAnyRole('QA_OFFICER', 'QA_TEAM_LEADER')")
-    public ResponseEntity<?> executeWorkflow(@PathVariable UUID caseId,
+    public ResponseEntity<?> executeWorkflow(@PathVariable String caseId,
                                              @RequestBody QaWorkflowRequest request,
                                              @RequestHeader(value = "X-Actor-Id", defaultValue = "test-user") String actorId) {
         return ResponseEntity.ok(reviewService.executeWorkflow(caseId, request, actorId));
@@ -83,7 +87,7 @@ public class QaController {
 
     @PostMapping("/{caseId}/deficiencies")
     @PreAuthorize("hasRole('QA_OFFICER')")
-    public ResponseEntity<?> createDeficiency(@PathVariable UUID caseId,
+    public ResponseEntity<?> createDeficiency(@PathVariable String caseId,
                                               @RequestBody QaDeficiencyRequest request,
                                               @RequestHeader(value = "X-Actor-Id", defaultValue = "test-user") String actorId) {
         return ResponseEntity.ok(reviewService.createDeficiency(caseId, request, actorId));
@@ -91,8 +95,8 @@ public class QaController {
 
     @PutMapping("/{caseId}/deficiencies/{defId}")
     @PreAuthorize("hasRole('QA_OFFICER')")
-    public ResponseEntity<?> updateDeficiency(@PathVariable UUID caseId,
-                                              @PathVariable UUID defId,
+    public ResponseEntity<?> updateDeficiency(@PathVariable String caseId,
+                                              @PathVariable String defId,
                                               @RequestBody QaDeficiencyRequest request,
                                               @RequestHeader(value = "X-Actor-Id", defaultValue = "test-user") String actorId) {
         return ResponseEntity.ok(reviewService.updateDeficiency(caseId, defId, request, actorId));
@@ -100,8 +104,8 @@ public class QaController {
 
     @DeleteMapping("/{caseId}/deficiencies/{defId}")
     @PreAuthorize("hasRole('QA_OFFICER')")
-    public ResponseEntity<?> deleteDeficiency(@PathVariable UUID caseId,
-                                              @PathVariable UUID defId,
+    public ResponseEntity<?> deleteDeficiency(@PathVariable String caseId,
+                                              @PathVariable String defId,
                                               @RequestHeader(value = "X-Actor-Id", defaultValue = "test-user") String actorId) {
         reviewService.deleteDeficiency(caseId, defId, actorId);
         return ResponseEntity.ok().build();
@@ -109,7 +113,7 @@ public class QaController {
     
     @PostMapping("/{caseId}/report")
     @PreAuthorize("hasRole('QA_OFFICER')")
-    public ResponseEntity<?> generateQaReport(@PathVariable UUID caseId,
+    public ResponseEntity<?> generateQaReport(@PathVariable String caseId,
                                               @RequestBody QaReportRequest request,
                                               @RequestHeader(value = "X-Actor-Id", defaultValue = "test-user") String actorId) {
         return ResponseEntity.ok(reviewService.generateReport(caseId, request, actorId));

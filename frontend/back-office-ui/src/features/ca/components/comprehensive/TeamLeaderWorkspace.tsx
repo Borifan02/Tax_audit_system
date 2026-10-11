@@ -47,11 +47,13 @@ import { AuditTrailDrawer } from '../workspace/AuditTrailDrawer';
 interface TeamLeaderWorkspaceProps {
   currentUser: AuthUser;
   onSelectCase?: (caseId: string) => void;
+  onClose?: () => void;
 }
 
 export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
   currentUser,
-  onSelectCase
+  onSelectCase,
+  onClose
 }) => {
   const [casesList, setCasesList] = useState<any[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('CA-2026-102');
@@ -174,7 +176,7 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
       const res = await itasApi.executeWorkflow(activeCase.id, {
         action: workflowAction,
         comment: actionComment,
-        user: currentUser.name
+        user: currentUser?.name || 'Supervisor'
       });
 
       if (res.success) {
@@ -191,6 +193,11 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
         setActionComment('');
         await loadCases();
         await loadFullCase(activeCase.id);
+        
+        // Auto-close the workspace and go back to dashboard after a short delay
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 2000);
       }
     } catch (err: any) {
       setActionError(err.message || 'Action failed. Please verify statutory parameters.');
@@ -205,6 +212,15 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
       <div className="bg-slate-900 text-white px-4 sm:px-6 py-3 border-b border-slate-800 shadow-md">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="mr-2 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                title="Back to Dashboard"
+              >
+                <ArrowRight className="w-5 h-5 text-slate-400 rotate-180" />
+              </button>
+            )}
             <div className="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
               <UserCheck className="w-5 h-5" />
             </div>
@@ -217,12 +233,12 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                   SOR FR-04.7
                 </span>
                 <span className="text-2xs px-2 py-0.5 rounded font-mono bg-slate-800 text-slate-300 border border-slate-700">
-                  {currentUser.directorate}
+                  {currentUser?.directorate || currentUser?.taxCenter || 'LTO-1'}
                 </span>
               </div>
               <p className="text-xs text-slate-400">
                 Reviewing Auditor: <strong className="text-slate-200">{activeCase?.assignedAuditor || 'Jane Doe'}</strong> • Supervisor:{' '}
-                <strong className="text-slate-200">{currentUser.name}</strong> ({currentUser.badgeNumber})
+                <strong className="text-slate-200">{currentUser?.name || 'Supervisor'}</strong> ({currentUser?.badgeNumber || 'TL-001'})
               </p>
             </div>
           </div>
@@ -326,7 +342,7 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                       <div className="text-2xs text-slate-500 flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                         <span>TIN: {c.tin}</span>
                         <span className="font-bold text-slate-800">
-                          ${(c.totalAssessment || 0).toLocaleString()}
+                          ${(c.totalAssessment || 0)?.toLocaleString()}
                         </span>
                       </div>
 
@@ -414,7 +430,7 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                       Total Tax Adjustment & Due
                     </span>
                     <span className="text-xl font-bold font-mono text-slate-900">
-                      ${totalAssessment.toLocaleString()}
+                      ${totalAssessment?.toLocaleString()}
                     </span>
                     {isOverDirectorThreshold && (
                       <span className="block text-[10px] font-bold text-purple-700 mt-0.5">
@@ -491,7 +507,7 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                         onClick={() => {
                           setActionType('RECOMMEND_DIRECTOR');
                           setActionComment(
-                            `Substantive audit findings substantiate $${totalAssessment.toLocaleString()} in tax adjustments, exceeding the $500,000 threshold. Formally recommended for Executive Director Statutory Approval.`
+                            `Substantive audit findings substantiate $${totalAssessment?.toLocaleString()} in tax adjustments, exceeding the $500,000 threshold. Formally recommended for Executive Director Statutory Approval.`
                           );
                         }}
                         className="px-3.5 py-1.5 text-xs font-bold rounded bg-purple-700 hover:bg-purple-800 text-white shadow-xs flex items-center gap-1.5 transition-colors"
@@ -707,7 +723,7 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                         </p>
                       </div>
                       <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
-                        Total Adjustment: ${totalFindingsTax.toLocaleString()}
+                        Total Adjustment: ${totalFindingsTax?.toLocaleString()}
                       </span>
                     </div>
 
@@ -738,7 +754,7 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                             <div className="text-right">
                               <span className="text-2xs text-slate-500 block">Total Impact</span>
                               <span className="font-mono font-bold text-sm text-slate-900">
-                                ${f.totalTaxImpact.toLocaleString()}
+                                ${f.totalTaxImpact?.toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -749,7 +765,7 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                             <div>
                               <span className="text-slate-400 block font-medium">Under-Declared Tax</span>
                               <span className="font-bold text-slate-800 font-mono">
-                                ${f.underDeclaredAmount.toLocaleString()}
+                                ${f.underDeclaredAmount?.toLocaleString()}
                               </span>
                             </div>
                             <div>
@@ -757,13 +773,13 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                                 Statutory Penalty ({f.penaltyRate}%)
                               </span>
                               <span className="font-bold text-amber-700 font-mono">
-                                ${f.penaltyAmount.toLocaleString()}
+                                ${f.penaltyAmount?.toLocaleString()}
                               </span>
                             </div>
                             <div>
                               <span className="text-slate-400 block font-medium">Late Interest</span>
                               <span className="font-bold text-slate-800 font-mono">
-                                ${f.interestAmount.toLocaleString()}
+                                ${f.interestAmount?.toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -841,25 +857,25 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                         <div>
                           <span className="text-slate-400 block font-medium">VAT Sales Declared</span>
                           <span className="font-mono font-bold text-slate-800">
-                            ${reconciliations.vatVsSales.annualVatSalesDeclared.toLocaleString()}
+                            ${reconciliations.vatVsSales.annualVatSalesDeclared?.toLocaleString()}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400 block font-medium">CIT Gross Turnover</span>
                           <span className="font-mono font-bold text-slate-800">
-                            ${reconciliations.vatVsSales.annualCitGrossTurnover.toLocaleString()}
+                            ${reconciliations.vatVsSales.annualCitGrossTurnover?.toLocaleString()}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400 block font-medium">TIMS Electronic Invoices</span>
                           <span className="font-mono font-bold text-slate-800">
-                            ${reconciliations.vatVsSales.timsElectronicInvoices.toLocaleString()}
+                            ${reconciliations.vatVsSales.timsElectronicInvoices?.toLocaleString()}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400 block font-medium">Identified Variance</span>
                           <span className="font-mono font-bold text-rose-700">
-                            ${reconciliations.vatVsSales.variance.toLocaleString()}
+                            ${reconciliations.vatVsSales.variance?.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -879,19 +895,19 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                         <div>
                           <span className="text-slate-400 block font-medium">ASYCUDA CIF Imports</span>
                           <span className="font-mono font-bold text-slate-800">
-                            ${reconciliations.customsImportsVsPurchases.asycudaCifImports.toLocaleString()}
+                            ${reconciliations.customsImportsVsPurchases.asycudaCifImports?.toLocaleString()}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400 block font-medium">GL Import Purchases</span>
                           <span className="font-mono font-bold text-slate-800">
-                            ${reconciliations.customsImportsVsPurchases.generalLedgerImportCosts.toLocaleString()}
+                            ${reconciliations.customsImportsVsPurchases.generalLedgerImportCosts?.toLocaleString()}
                           </span>
                         </div>
                         <div>
                           <span className="text-slate-400 block font-medium">Identified Variance</span>
                           <span className="font-mono font-bold text-rose-700">
-                            ${reconciliations.customsImportsVsPurchases.variance.toLocaleString()}
+                            ${reconciliations.customsImportsVsPurchases.variance?.toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -1044,25 +1060,25 @@ export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
                         <div className="flex justify-between py-1">
                           <span className="text-slate-600">Principal Tax Adjustment</span>
                           <span className="font-mono font-bold text-slate-900">
-                            ${assessmentNotice.principalTax.toLocaleString()}
+                            ${assessmentNotice.principalTax?.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between py-1 text-amber-800">
                           <span>Statutory Section 112 Penalty (20%)</span>
                           <span className="font-mono font-bold">
-                            ${assessmentNotice.statutoryPenalty20.toLocaleString()}
+                            ${assessmentNotice.statutoryPenalty20?.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between py-1 text-slate-600">
                           <span>Statutory Late Payment Interest</span>
                           <span className="font-mono font-bold">
-                            ${assessmentNotice.interest.toLocaleString()}
+                            ${assessmentNotice.interest?.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between pt-2 border-t-2 border-slate-300 text-sm font-bold text-slate-900">
                           <span>Total Amount Payable</span>
                           <span className="font-mono text-indigo-700">
-                            ${assessmentNotice.totalAssessmentDue.toLocaleString()}
+                            ${assessmentNotice.totalAssessmentDue?.toLocaleString()}
                           </span>
                         </div>
                       </div>

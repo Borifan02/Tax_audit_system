@@ -487,12 +487,13 @@ export default function TeamLeaderDashboard({ view }) {
   if (caWorkspaceCase) {
     return (
       <TeamLeaderWorkspace
-        caseData={caWorkspaceCase}
-        user={user}
-        onClose={() => setCaWorkspaceCase(null)}
-        onRefresh={() => {
-          fetchCases();
+        currentUser={user}
+        onSelectCase={(caseId) => {
+          // You could handle case selection, or leave it empty as TL workspace manages its own state
+        }}
+        onClose={() => {
           setCaWorkspaceCase(null);
+          fetchCases();
         }}
       />
     );

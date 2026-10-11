@@ -125,19 +125,19 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono text-xs text-center py-2 bg-gray-50 rounded border border-gray-100">
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">Annual CIT Turnover</span>
-                <span className="font-bold text-gray-900">${reconciliations.vatVsSales.annualCitGrossTurnover.toLocaleString()}</span>
+                <span className="font-bold text-gray-900">${reconciliations.vatVsSales.annualCitGrossTurnover?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">12-Month VAT-03 Declared</span>
-                <span className="font-bold text-indigo-700">${reconciliations.vatVsSales.annualVatSalesDeclared.toLocaleString()}</span>
+                <span className="font-bold text-indigo-700">${reconciliations.vatVsSales.annualVatSalesDeclared?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">TIMS E-Invoices Registered</span>
-                <span className="font-bold text-gray-700">${reconciliations.vatVsSales.timsElectronicInvoices.toLocaleString()}</span>
+                <span className="font-bold text-gray-700">${reconciliations.vatVsSales.timsElectronicInvoices?.toLocaleString()}</span>
               </div>
               <div className="bg-rose-50 rounded p-1">
                 <span className="text-[10px] text-rose-700 font-sans block uppercase font-bold">Unreconciled Variance</span>
-                <span className="font-bold text-rose-800 text-sm">${reconciliations.vatVsSales.variance.toLocaleString()}</span>
+                <span className="font-bold text-rose-800 text-sm">${reconciliations.vatVsSales.variance?.toLocaleString()}</span>
               </div>
             </div>
 
@@ -165,15 +165,15 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center py-2 bg-gray-50 rounded border border-gray-100">
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">P&L Staff Costs Deducted</span>
-                <span className="font-bold text-gray-900">${reconciliations.payrollPayeVsPnL.pnlSalariesExpense.toLocaleString()}</span>
+                <span className="font-bold text-gray-900">${reconciliations.payrollPayeVsPnL.pnlSalariesExpense?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">12-Month PAYE Remitted Base</span>
-                <span className="font-bold text-indigo-700">${reconciliations.payrollPayeVsPnL.payrollPayeRemitted.toLocaleString()}</span>
+                <span className="font-bold text-indigo-700">${reconciliations.payrollPayeVsPnL.payrollPayeRemitted?.toLocaleString()}</span>
               </div>
               <div className="bg-amber-50 rounded p-1">
                 <span className="text-[10px] text-amber-700 font-sans block uppercase font-bold">Untaxed Payroll Spread</span>
-                <span className="font-bold text-amber-800 text-sm">${reconciliations.payrollPayeVsPnL.variance.toLocaleString()}</span>
+                <span className="font-bold text-amber-800 text-sm">${reconciliations.payrollPayeVsPnL.variance?.toLocaleString()}</span>
               </div>
             </div>
 
@@ -201,15 +201,15 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs text-center py-2 bg-gray-50 rounded border border-gray-100">
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">ASYCUDA Customs CIF Value</span>
-                <span className="font-bold text-gray-900">${reconciliations.customsImportsVsPurchases.asycudaCifImports.toLocaleString()}</span>
+                <span className="font-bold text-gray-900">${reconciliations.customsImportsVsPurchases.asycudaCifImports?.toLocaleString()}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 font-sans block uppercase">General Ledger Raw Materials</span>
-                <span className="font-bold text-indigo-700">${reconciliations.customsImportsVsPurchases.generalLedgerImportCosts.toLocaleString()}</span>
+                <span className="font-bold text-indigo-700">${reconciliations.customsImportsVsPurchases.generalLedgerImportCosts?.toLocaleString()}</span>
               </div>
               <div className="bg-indigo-50 rounded p-1">
                 <span className="text-[10px] text-indigo-700 font-sans block uppercase font-bold">Transfer Pricing Uplift</span>
-                <span className="font-bold text-indigo-800 text-sm">${reconciliations.customsImportsVsPurchases.variance.toLocaleString()}</span>
+                <span className="font-bold text-indigo-800 text-sm">${reconciliations.customsImportsVsPurchases.variance?.toLocaleString()}</span>
               </div>
             </div>
 
@@ -288,21 +288,21 @@ export const StepCompReconciliations: React.FC<StepCompReconciliationsProps> = (
                 <tr>
                   <td className="py-2.5 px-4 font-sans font-medium text-gray-900">Gross Turnover</td>
                   {analysis.annualFinancials.map((f) => (
-                    <td key={f.year} className="py-2.5 px-4 text-right tabular-nums">${f.revenue.toLocaleString()}</td>
+                    <td key={f.year} className="py-2.5 px-4 text-right tabular-nums">${f.revenue?.toLocaleString()}</td>
                   ))}
                   <td className="py-2.5 px-4 text-right text-emerald-600 font-sans font-bold">+29.5% ↑</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-4 font-sans font-medium text-gray-900">Cost of Goods Sold (COGS)</td>
                   {analysis.annualFinancials.map((f) => (
-                    <td key={f.year} className="py-2.5 px-4 text-right tabular-nums">${f.cogs.toLocaleString()}</td>
+                    <td key={f.year} className="py-2.5 px-4 text-right tabular-nums">${f.cogs?.toLocaleString()}</td>
                   ))}
                   <td className="py-2.5 px-4 text-right text-rose-600 font-sans font-bold">+43.4% ↑↑</td>
                 </tr>
                 <tr className="bg-rose-50/40 font-bold">
                   <td className="py-2.5 px-4 font-sans text-rose-900">Taxable Net Income</td>
                   {analysis.annualFinancials.map((f) => (
-                    <td key={f.year} className="py-2.5 px-4 text-right tabular-nums text-rose-900">${f.taxableIncome.toLocaleString()}</td>
+                    <td key={f.year} className="py-2.5 px-4 text-right tabular-nums text-rose-900">${f.taxableIncome?.toLocaleString()}</td>
                   ))}
                   <td className="py-2.5 px-4 text-right text-rose-700 font-sans">-63.7% ↓↓</td>
                 </tr>

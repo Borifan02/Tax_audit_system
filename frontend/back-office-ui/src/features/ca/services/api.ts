@@ -34,9 +34,10 @@ export function getCurrentUserId(): string {
 }
 
 function getRequestHeaders(additional?: Record<string, string>): Record<string, string> {
+  const activeUser = sessionStorage.getItem('userId') || localStorage.getItem('itas_current_user_id') || currentUserId;
   return {
     'Content-Type': 'application/json',
-    'X-User-Id': currentUserId,
+    'X-Actor-Id': activeUser,
     ...(additional || {})
   };
 }
@@ -632,19 +633,22 @@ export const itasApi = {
     }
   ): Promise<{ success: boolean; status: AuditStatus; auditCase: AuditCase }> {
     try {
-      const res = await fetch(`/api/v1/backoffice/ca/cases/${caseId}/workflow`, {
+      let realId = caseId;
+      if (caseId === 'CA-2026-101' || caseId === 'COMP-2026-001') realId = 'c0000000-0000-0000-0000-000000000101';
+      
+      const res = await fetch(`/api/v1/backoffice/da/cases/${realId}/workflow`, {
         method: 'POST',
         headers: getRequestHeaders(),
         body: JSON.stringify(payload)
       });
-      if (res.ok) return await res.json();
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `Workflow action failed with status ${res.status}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Workflow action failed with status ${res.status}`);
+      }
     } catch (err: any) {
       if (err.message && !err.message.includes('fetch')) {
         throw err;
       }
-      // Fallback only if offline/network error
     }
 
     const current = getLocalCaseData(caseId);

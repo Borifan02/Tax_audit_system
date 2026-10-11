@@ -144,7 +144,7 @@ export const StepCompReviewSubmit: React.FC<StepCompReviewSubmitProps> = ({
       title: 'Statutory Notice of Assessment Generated (30-Day Period)',
       standard: 'SOR FR-04.7-26',
       isPassed: isNoticeReady,
-      statusText: isNoticeReady ? `Assessment notice generated: $${assessmentNotice?.totalAssessmentDue.toLocaleString()}` : 'Notice pending calculation',
+      statusText: isNoticeReady ? `Assessment notice generated: $${assessmentNotice?.totalAssessmentDue?.toLocaleString()}` : 'Notice pending calculation',
       stepIndex: 8
     }
   ];
@@ -204,7 +204,7 @@ export const StepCompReviewSubmit: React.FC<StepCompReviewSubmitProps> = ({
           <div className="bg-gray-50 p-3.5 rounded border border-gray-200">
             <span className="text-2xs font-bold text-gray-500 uppercase block">Total Additional Tax Assessment</span>
             <div className="text-2xl font-bold font-mono text-gray-900 mt-1">
-              ${totalTaxExposure.toLocaleString()}
+              ${totalTaxExposure?.toLocaleString()}
             </div>
           </div>
 
@@ -291,7 +291,7 @@ export const StepCompReviewSubmit: React.FC<StepCompReviewSubmitProps> = ({
             <Send className="w-4 h-4" />
             <span>
               {caseData.status === 'SUBMITTED'
-                ? 'Case Already Submitted'
+                ? 'Submitted'
                 : caseData.status === 'APPROVED'
                 ? 'Audit Approved'
                 : 'Submit for Team Leader Review'}

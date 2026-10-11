@@ -10,6 +10,11 @@ import { SEED_USERS } from './seed.js';
 export function normalizeRole(role) {
   if (!role) return 'auditor';
   const r = role.toLowerCase().replace(/[\s-]+/g, '_');
+  
+  if (r.includes('qa_officer') || r === 'qa_officer') return 'qa_officer';
+  if (r.includes('qa_team_leader') || r === 'qa_team_leader' || r === 'qa.tl1') return 'qa_team_leader';
+  if (r.includes('qa_director') || r === 'qa_director' || r === 'qa.director') return 'qa_director';
+
   if (r.includes('plan')) return 'planning_team';
   if (r.includes('direct') && !r.includes('region')) return 'audit_director';
   if (r.includes('senior')) return 'senior_management';
@@ -182,6 +187,42 @@ export function synthesizeUserFromPattern(identifier) {
       name: 'Crest Textiles CFO',
       email: 'cfo@cresttextiles.et',
       role: 'taxpayer'
+    });
+  }
+
+  if (cleanInput === 'qa_officer' || cleanInput === 'usr-qa-01' || cleanInput === 'qa.officer1') {
+    return buildCompleteUserProfile({
+      id: cleanInput,
+      username: cleanInput,
+      name: 'QA Officer',
+      email: `${cleanInput}@mor.gov.et`,
+      role: 'qa_officer',
+      region: 'federal_level',
+      taxCenter: 'federal-lto1'
+    });
+  }
+
+  if (cleanInput === 'qa_team_leader' || cleanInput === 'usr-qa-tl' || cleanInput === 'qa.tl1') {
+    return buildCompleteUserProfile({
+      id: cleanInput,
+      username: cleanInput,
+      name: 'QA Team Leader',
+      email: `${cleanInput}@mor.gov.et`,
+      role: 'qa_team_leader',
+      region: 'federal_level',
+      taxCenter: 'federal-lto1'
+    });
+  }
+
+  if (cleanInput === 'qa_director' || cleanInput === 'qa.director') {
+    return buildCompleteUserProfile({
+      id: cleanInput,
+      username: cleanInput,
+      name: 'QA Director',
+      email: `${cleanInput}@mor.gov.et`,
+      role: 'qa_director',
+      region: 'federal_level',
+      taxCenter: 'federal-lto1'
     });
   }
 
