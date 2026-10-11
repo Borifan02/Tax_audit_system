@@ -445,6 +445,7 @@ export default function TeamLeaderDashboard({ view }) {
     return (
       <TeamLeaderWorkspace
         currentUser={user}
+        initialCaseId={caWorkspaceCase.id || caWorkspaceCase.caseNumber}
         onSelectCase={(caseId) => {
           // You could handle case selection, or leave it empty as TL workspace manages its own state
         }}

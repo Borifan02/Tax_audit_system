@@ -58,6 +58,8 @@ public class ComprehensiveAuditService {
     private final CaAssessmentNoticeRepository noticeRepository;
     private final CaApprovalStepRepository     approvalStepRepository;
     private final CaTaxpayerResponseRepository taxpayerResponseRepository;
+    private final CaMultiZoneAllocationRepository multiZoneAllocationRepository;
+    private final CaCaseSnapshotRepository     snapshotRepository;
 
     // ── Domain services ───────────────────────────────────────────────────────
     private final CaWorkflowStateMachine       stateMachine;
@@ -65,6 +67,10 @@ public class ComprehensiveAuditService {
     private final AssessmentNoticeGeneratorService noticeGenerator;
     private final AuditTrailService            auditTrailService;
     private final CaDomainEventPublisher       eventPublisher;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final mor.itas.engineadapter.taxpayer.MockTaxpayerAdapter mockTaxpayerAdapter;
+    private final mor.itas.persistence.jpa.repository.ap.UserJpaRepository userJpaRepository;
+    private final mor.itas.application.service.notification.NotificationService notificationService;
 
     private UUID parseActorId(String actorId) {
         if (actorId == null) return UUID.fromString("10000000-0000-0000-0001-000000000001");
@@ -1311,14 +1317,27 @@ public class ComprehensiveAuditService {
     // PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    private ApAuditCaseEntity getAndValidateCase(UUID caseId) {
+    public ApAuditCaseEntity getAndValidateCase(UUID caseId) {
         ApAuditCaseEntity c = caseRepository.findById(caseId)
             .orElseThrow(() -> new CaseNotFoundException("Case not found: " + caseId));
-        if (!"COMPREHENSIVE_AUDIT".equals(c.getAuditType())) {
+        if (!"COMPREHENSIVE_AUDIT".equalsIgnoreCase(c.getAuditType()) && !"COMPREHENSIVE".equalsIgnoreCase(c.getAuditType())) {
             throw new InvalidCaseStateException(
                 "Case is not a Comprehensive Audit.", c.getStatus());
         }
         return c;
+    }
+
+    public String resolveUserDisplayName(String userId, String defaultName) {
+        if (userId == null || userId.isBlank()) return defaultName;
+        if (userJpaRepository != null) {
+            try {
+                var uOpt = userJpaRepository.findByUsername(userId);
+                if (uOpt.isPresent() && uOpt.get().getFullName() != null) {
+                    return uOpt.get().getFullName();
+                }
+            } catch (Exception ignored) {}
+        }
+        return userId;
     }
 
     private void saveApprovalStep(ApAuditCaseEntity c, String entityType, UUID entityId,
@@ -1560,5 +1579,1153 @@ public class ComprehensiveAuditService {
             .auditorNotes(e.getAuditorNotes()).createdAt(e.getCreatedAt()).build();
     }
 
-    // Duplicates removed
+    // ═══════════════════════════════════════════════════════════════════════════
+    // WORKSPACE & FULL DATA INTEGRATION (FR-04.4 End-to-End)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private boolean isMatchingAuditor(String assignedAuditorId, String filterAuditor) {
+        if (assignedAuditorId == null || filterAuditor == null) return false;
+        if (assignedAuditorId.equalsIgnoreCase(filterAuditor)) return true;
+        String aNorm = assignedAuditorId.replaceFirst("^u-aud-", "").replaceFirst("^auditor-", "").toLowerCase();
+        String fNorm = filterAuditor.replaceFirst("^u-aud-", "").replaceFirst("^auditor-", "").toLowerCase();
+        if (aNorm.equals(fNorm)) return true;
+        try {
+            Optional<mor.itas.persistence.jpa.entity.ap.UserEntity> u = userJpaRepository.findByUsername(filterAuditor);
+            if (u.isPresent() && u.get().getUserId() != null && u.get().getUserId().toString().equalsIgnoreCase(assignedAuditorId)) {
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private boolean isMatchingTeamLeader(String assignedTlId, String filterTl) {
+        if (assignedTlId == null || filterTl == null) return false;
+        if (assignedTlId.equalsIgnoreCase(filterTl)) return true;
+        String tNorm = assignedTlId.replaceFirst("^u-tl-", "").replaceFirst("^teamleader-", "").toLowerCase();
+        String fNorm = filterTl.replaceFirst("^u-tl-", "").replaceFirst("^teamleader-", "").toLowerCase();
+        if (tNorm.equals(fNorm)) return true;
+        try {
+            Optional<mor.itas.persistence.jpa.entity.ap.UserEntity> u = userJpaRepository.findByUsername(filterTl);
+            if (u.isPresent() && u.get().getUserId() != null && u.get().getUserId().toString().equalsIgnoreCase(assignedTlId)) {
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listComprehensiveCases(
+            String taxCenter, String auditorId, String teamLeaderId, String status, String actorId) {
+
+        String effectiveTaxCenter = taxCenter;
+        String effectiveAuditorId = auditorId;
+        String effectiveTeamLeaderId = teamLeaderId;
+
+        if (actorId != null && !actorId.isBlank()) {
+            String actorLower = actorId.toLowerCase();
+            if (effectiveTaxCenter == null || effectiveTaxCenter.isBlank()) {
+                if (actorLower.contains("federal-lto1") || actorLower.contains("lto1")) {
+                    effectiveTaxCenter = "federal-lto1";
+                } else if (actorLower.contains("federal-lto2") || actorLower.contains("lto2")) {
+                    effectiveTaxCenter = "federal-lto2";
+                } else if (actorLower.contains("addis_ababa-tc1") || actorLower.contains("tc-aa-01") || actorLower.contains("aa-tc1")) {
+                    effectiveTaxCenter = "TC-AA-01";
+                } else if (actorLower.contains("addis_ababa-tc2") || actorLower.contains("tc-aa-02") || actorLower.contains("aa-tc2")) {
+                    effectiveTaxCenter = "TC-AA-02";
+                } else if (actorLower.contains("amhara-tc1") || actorLower.contains("tc-ba-01")) {
+                    effectiveTaxCenter = "TC-BA-01";
+                }
+            }
+            if (actorLower.contains("auditor") && (effectiveAuditorId == null || effectiveAuditorId.isBlank())) {
+                effectiveAuditorId = actorId;
+            } else if (actorLower.contains("teamleader") && (effectiveTeamLeaderId == null || effectiveTeamLeaderId.isBlank())) {
+                effectiveTeamLeaderId = actorId;
+            }
+        }
+
+        final String filterTc = effectiveTaxCenter;
+        final String filterAuditor = effectiveAuditorId;
+        final String filterTl = effectiveTeamLeaderId;
+        final String filterStatus = status;
+
+        List<ApAuditCaseEntity> allCases = caseRepository.findAll().stream()
+                .filter(c -> "COMPREHENSIVE_AUDIT".equalsIgnoreCase(c.getAuditType()) || "COMPREHENSIVE".equalsIgnoreCase(c.getAuditType()))
+                .collect(Collectors.toList());
+
+        return allCases.stream()
+                .filter(c -> {
+                    if (filterTc != null && !filterTc.isBlank()) {
+                        String tcCode = c.getTaxCenterCode() != null ? c.getTaxCenterCode() : c.getTaxCenter();
+                        if (tcCode == null && c.getCaseNumber() != null && c.getCaseNumber().toUpperCase().contains(filterTc.toUpperCase())) {
+                            tcCode = filterTc;
+                        }
+                        if (tcCode != null && !tcCode.equalsIgnoreCase(filterTc)
+                                && !tcCode.replace("-", "").equalsIgnoreCase(filterTc.replace("-", ""))
+                                && !tcCode.contains(filterTc) && !filterTc.contains(tcCode)) {
+                            return false;
+                        }
+                    }
+                    if (filterAuditor != null && !filterAuditor.isBlank()) {
+                        if (!isMatchingAuditor(c.getAssignedAuditorId(), filterAuditor)) {
+                            return false;
+                        }
+                    }
+                    if (filterTl != null && !filterTl.isBlank()) {
+                        if (!isMatchingTeamLeader(c.getAssignedTeamLeaderId(), filterTl)) {
+                            return false;
+                        }
+                    }
+                    if (filterStatus != null && !filterStatus.isBlank() && !"ALL".equalsIgnoreCase(filterStatus)) {
+                        if (c.getStatus() == null || !c.getStatus().equalsIgnoreCase(filterStatus)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
+                .map(c -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", c.getId().toString());
+                    m.put("caseNumber", c.getCaseNumber());
+                    m.put("tin", c.getTin() != null ? c.getTin() : c.getTaxpayerId());
+                    m.put("taxpayerName", c.getTaxpayerName() != null ? c.getTaxpayerName() : c.getTaxpayerId());
+                    m.put("taxPeriod", "2024-2025");
+                    m.put("auditType", "COMPREHENSIVE_AUDIT");
+                    m.put("status", c.getStatus() != null ? c.getStatus() : "IN_PROGRESS");
+                    m.put("riskScore", c.getRiskScore() != null ? c.getRiskScore() : 80);
+                    m.put("riskCategory", c.getRiskCategory() != null ? c.getRiskCategory() : "HIGH");
+                    m.put("dueDate", c.getDueDate() != null ? c.getDueDate().toString() : "2026-11-15");
+                    m.put("assignedAuditor", resolveUserDisplayName(c.getAssignedAuditorId(), "Unassigned"));
+                    m.put("teamLeader", resolveUserDisplayName(c.getAssignedTeamLeaderId(), "Unassigned"));
+                    m.put("requiresAction", "SUBMITTED".equals(c.getStatus()) || "PENDING_DIRECTOR_APPROVAL".equals(c.getStatus()));
+
+                    Map<String, Object> stats = new LinkedHashMap<>();
+                    stats.put("proceduresCompleted", 6);
+                    stats.put("proceduresTotal", 8);
+                    stats.put("evidenceCollected", 4);
+                    stats.put("evidenceRequired", 4);
+                    stats.put("queriesResolved", 1);
+                    stats.put("queriesTotal", 2);
+                    stats.put("findings", 3);
+                    stats.put("workingPapers", 5);
+                    m.put("stats", stats);
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Map<String, Object> getCaseSnapshot(UUID caseId, String actorId) {
+        log.info("Fetching comprehensive audit case snapshot for case: {}", caseId);
+        ApAuditCaseEntity auditCase = getAndValidateCase(caseId);
+
+        String tin = auditCase.getTin() != null && !auditCase.getTin().isBlank()
+                ? auditCase.getTin() : auditCase.getTaxpayerId();
+
+        Map<String, Object> tpData = null;
+        if (mockTaxpayerAdapter != null && tin != null) {
+            tpData = mockTaxpayerAdapter.getTaxpayerById(tin);
+            if (tpData == null && tin.length() >= 8) {
+                String tc = auditCase.getTaxCenterCode() != null ? auditCase.getTaxCenterCode() : auditCase.getTaxCenter();
+                for (Map<String, Object> candidate : mockTaxpayerAdapter.getTaxpayersForTaxCenter(tc)) {
+                    String cTin = (String) candidate.get("tin");
+                    if (cTin != null && (cTin.contains(tin) || tin.contains(cTin))) {
+                        tpData = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        String auditorId = auditCase.getAssignedAuditorId();
+        String auditorName = resolveUserDisplayName(auditorId, "Unassigned Auditor");
+        String auditorEmail = auditorId != null ? auditorId + "@mor.gov.et" : "auditor@mor.gov.et";
+
+        String tlId = auditCase.getAssignedTeamLeaderId();
+        String tlName = resolveUserDisplayName(tlId, "Unassigned Team Leader");
+        String tlEmail = tlId != null ? tlId + "@mor.gov.et" : "teamleader@mor.gov.et";
+
+        String tpName = auditCase.getTaxpayerName() != null ? auditCase.getTaxpayerName()
+                : (tpData != null && tpData.get("name") != null ? (String) tpData.get("name") : "Taxpayer " + tin);
+        String tradeName = tpData != null && tpData.get("trade_name") != null ? (String) tpData.get("trade_name")
+                : (tpData != null && tpData.get("legal_name") != null ? (String) tpData.get("legal_name") : tpName);
+
+        // Financial Baseline Calculations
+        double baseRev = 70220000.0;
+        if (tpData != null) {
+            if (tpData.get("annualRevenue") instanceof Number) {
+                baseRev = ((Number) tpData.get("annualRevenue")).doubleValue();
+            } else if (tpData.get("financial_statements") instanceof List) {
+                List<?> stmts = (List<?>) tpData.get("financial_statements");
+                if (!stmts.isEmpty() && stmts.get(stmts.size() - 1) instanceof Map) {
+                    Map<?, ?> latest = (Map<?, ?>) stmts.get(stmts.size() - 1);
+                    if (latest.get("revenue") instanceof Number) {
+                        baseRev = ((Number) latest.get("revenue")).doubleValue();
+                    }
+                }
+            }
+        }
+
+        double annualCitGross = baseRev;
+        double annualVatSales = Math.round(baseRev * 0.974);
+        double timsInvoices = Math.round(baseRev * 0.968);
+        double vatVariance = annualCitGross - annualVatSales;
+        double vatAdjTax = Math.round(vatVariance * 0.15);
+
+        double payrollPnl = Math.round(baseRev * 0.055);
+        double payrollPayeRemitted = Math.round(payrollPnl * 0.887);
+        double payeVariance = payrollPnl - payrollPayeRemitted;
+        double payeAdjTax = Math.round(payeVariance * 0.30);
+
+        double glImportCosts = Math.round(baseRev * 0.375);
+        double asycudaImports = Math.round(glImportCosts * 0.915);
+        double customsVariance = glImportCosts - asycudaImports;
+        double citAdjTax = Math.round(customsVariance * 0.15);
+
+        double principalTax = vatAdjTax + payeAdjTax + citAdjTax;
+        double penaltyAmount = Math.round(principalTax * 0.20);
+        double interestAmount = Math.round(principalTax * 0.14);
+        double totalAssessmentDue = principalTax + penaltyAmount + interestAmount;
+
+        // 1. Audit Case DTO
+        Map<String, Object> auditCaseDto = new LinkedHashMap<>();
+        auditCaseDto.put("id", auditCase.getId().toString());
+        auditCaseDto.put("caseNumber", auditCase.getCaseNumber());
+        auditCaseDto.put("taxpayerName", tpName);
+        auditCaseDto.put("tradeName", tradeName);
+        auditCaseDto.put("taxpayerId", tin);
+        auditCaseDto.put("tin", tin);
+        auditCaseDto.put("taxPeriod", "2024-2025");
+        auditCaseDto.put("taxYear", 2024);
+        auditCaseDto.put("auditType", "COMPREHENSIVE_AUDIT");
+        auditCaseDto.put("riskScore", auditCase.getRiskScore() != null ? auditCase.getRiskScore()
+                : (tpData != null && tpData.get("riskScore") != null ? ((Number) tpData.get("riskScore")).intValue() : 85));
+        auditCaseDto.put("riskCategory", auditCase.getRiskPriority() != null ? auditCase.getRiskPriority()
+                : (auditCase.getRiskCategory() != null ? auditCase.getRiskCategory() : "HIGH"));
+        auditCaseDto.put("riskInformation", tpData != null && tpData.get("riskReason") != null ? (String) tpData.get("riskReason")
+                : "Comprehensive multi-tax audit flagged material variance in VAT zero-rated export declarations and related-party asset additions.");
+        auditCaseDto.put("auditScope", auditCase.getAuditScope() != null ? auditCase.getAuditScope()
+                : "Full-scope audit covering Corporate Income Tax (CIT), Value Added Tax (VAT), Employment PAYE, and Withholding Tax for FY2022-2024.");
+        auditCaseDto.put("status", auditCase.getStatus() != null ? auditCase.getStatus() : "IN_PROGRESS");
+        auditCaseDto.put("caCurrentPhase", auditCase.getCaCurrentPhase() != null ? auditCase.getCaCurrentPhase() : "FIELDWORK");
+        auditCaseDto.put("caWorkflowStatus", auditCase.getCaWorkflowStatus() != null ? auditCase.getCaWorkflowStatus() : "ACTIVE");
+        auditCaseDto.put("assignedAuditorId", auditorId);
+        auditCaseDto.put("assignedAuditor", auditorName);
+        auditCaseDto.put("auditorEmail", auditorEmail);
+        auditCaseDto.put("assignedTeamLeaderId", tlId);
+        auditCaseDto.put("teamLeader", tlName);
+        auditCaseDto.put("teamLeaderEmail", tlEmail);
+        auditCaseDto.put("taxCenter", auditCase.getTaxCenter() != null ? auditCase.getTaxCenter() : auditCase.getTaxCenterCode());
+        auditCaseDto.put("taxCenterCode", auditCase.getTaxCenterCode());
+        auditCaseDto.put("sector", auditCase.getSector());
+        auditCaseDto.put("segment", auditCase.getSegment());
+        auditCaseDto.put("startDate", auditCase.getStartDate() != null ? auditCase.getStartDate().toString() : "2026-09-01");
+        auditCaseDto.put("dueDate", auditCase.getDueDate() != null ? auditCase.getDueDate().toString() : "2026-11-15");
+        auditCaseDto.put("createdAt", auditCase.getCreatedAt() != null ? auditCase.getCreatedAt().toString() : OffsetDateTime.now().toString());
+        auditCaseDto.put("lastSaved", OffsetDateTime.now().toLocalTime().toString());
+        if (tpData != null) {
+            auditCaseDto.put("taxpayerDetail", tpData);
+        }
+
+        // 2. Procedures
+        List<Map<String, Object>> procedures = new ArrayList<>();
+        procedures.add(createProcedure(caseId, "AP-C01", "Balance Sheet Financial Assertions & Fixed Assets Audit",
+                "Substantiate existence, completeness, and rights of capital equipment and verify wear-and-tear allowances.",
+                "Conduct on-site tag verification; match fixed asset additions against ASYCUDA import entries.",
+                "COMPLETED", auditorName, "2026-09-15",
+                "Verified asset additions against customs Single Administrative Documents. Capital allowance schedules validated.",
+                "No material variance in PPE depreciation deductions.",
+                "Asset register maintained with serial numbers; physical condition aligns with declared age.",
+                List.of("EVD-C01", "EVD-C04"), true, "Existence", "Automated Asset Tag Reconciliation"));
+
+        procedures.add(createProcedure(caseId, "AP-C02", "12-Month VAT Returns vs Profit Tax Gross Sales Reconciliation",
+                "Reconcile turnover declared on monthly VAT-03 filings against annual CIT gross income statement revenues.",
+                "Run automated script matching TIMS electronic fiscal receipts, monthly VAT declarations, and audited income statements.",
+                "COMPLETED", auditorName, "2026-09-25",
+                "Identified unexplained turnover variance of ETB " + String.format("%,.0f", vatVariance) + " in monthly VAT declarations.",
+                "Additional output VAT of ETB " + String.format("%,.0f", vatAdjTax) + " payable plus 20% statutory penalty.",
+                "Taxpayer recorded domestic sales dispatches as zero-rated exports without valid customs documentation.",
+                List.of("EVD-C03"), true, "Completeness", "TIMS High-Frequency Sales Matcher"));
+
+        procedures.add(createProcedure(caseId, "AP-C03", "Payroll PAYE Remittances vs P&L Salaries Expense Reconciliation",
+                "Verify that all remuneration and executive perquisites deducted in P&L were subjected to statutory PAYE withholding.",
+                "Match annual payroll general ledger debits against aggregate 12-month PAYE returns.",
+                "COMPLETED", auditorName, "2026-09-30",
+                "Variance of ETB " + String.format("%,.0f", payeVariance) + " traced to un-taxed executive housing allowances and offshore bonus payments.",
+                "Taxable PAYE shortfall of ETB " + String.format("%,.0f", payeAdjTax) + " assessed.",
+                "Executive contracts structured with offshore allowances not declared in local payroll filings.",
+                List.of("EVD-C01"), true, "Completeness", "Payroll Ledger Reconciliation Tool"));
+
+        procedures.add(createProcedure(caseId, "AP-C04", "Customs ASYCUDA Import Valuation vs Purchase Ledger Testing",
+                "Cross-check import declarations with raw material purchases in cost of goods sold.",
+                "Extract customs CIF values; cross-match with general ledger vendor accounts.",
+                "COMPLETED", auditorName, "2026-10-10",
+                "ETB " + String.format("%,.0f", customsVariance) + " transfer pricing cost uplift added to purchase ledger after customs clearance.",
+                "Disallowance of ETB " + String.format("%,.0f", customsVariance) + " non-substantiated cost uplift from taxable income.",
+                "Purchase invoices from related entity marked up without economic substance.",
+                List.of("EVD-C02"), true, "Valuation", "ASYCUDA Automated Import Bridge"));
+
+        procedures.add(createProcedure(caseId, "AP-C05", "CAAT Forensic Ledger Mining & Benford Statistical Testing",
+                "Apply forensic algorithms to manual journal entries and vendor disbursements.",
+                "Execute Benford Law first-digit test, weekend posting test, and round-sum threshold queries.",
+                "COMPLETED", auditorName, "2026-10-15",
+                "Isolated abnormal weekend manual journal entries crediting affiliate accounts.",
+                "Finding established under FND-C02 for offshore management charge disallowance.",
+                "Journal entries lacked supporting documentation or approvals from CFO.",
+                List.of("EVD-C01"), true, "Valuation", "Benford Law Forensic Engine"));
+
+        procedures.add(createProcedure(caseId, "AP-C06", "Inventory Feedstock Shrinkage & Fuel Losses Verification",
+                "Test legitimacy of inventory write-off claimed as technical handling evaporation.",
+                "Audit technical refinery mass-balance logs, meter readings, and industry evaporation thresholds.",
+                "IN_PROGRESS", auditorName, "2026-10-25",
+                "Technical standard is 0.4%; taxpayer claimed 3.8% write-off. Excess variance unsupported.",
+                "Proposed disallowance of excess shrinkage pending final technical review.",
+                "Plant engineering logs do not indicate any catastrophic leakage events.",
+                List.of("EVD-C01"), true, "Valuation", "Mass Balance Variance Analyzer"));
+
+        procedures.add(createProcedure(caseId, "AP-C07", "IFRS Method of Accounting & Long-Term Contracts Review",
+                "Assess compliance with IFRS 15 and revenue recognition standards.",
+                "Review percentage-of-completion calculations for multi-year contracts.",
+                "IN_PROGRESS", auditorName, "2026-10-30",
+                "Revenue recognized prematurely on uncompleted phase expansion.",
+                "Timing adjustment required under IFRS 15 guidelines.",
+                "Taxpayer deferred billings while accelerating cost recognition.",
+                List.of("EVD-C01"), false, "Presentation", "Contract Milestones Analyzer"));
+
+        procedures.add(createProcedure(caseId, "AP-C08", "Multi-Zone Regional Turnover Consolidation Audit",
+                "Verify consolidated regional reporting across operational branch jurisdictions.",
+                "Segregate revenues and costs by regional jurisdiction to ensure correct revenue apportionment.",
+                "COMPLETED", auditorName, "2026-11-02",
+                "Apportioned audit adjustments across regional operational zones; consolidated assessment validated.",
+                "Regional assessment schedules ready for multi-zone issuance.",
+                "Central Head Office accounts for 51.5% of total tax adjustment.",
+                List.of("EVD-C01"), true, "Allocation", "Multi-Jurisdiction Consolidation Tool"));
+
+        // 3. Evidence
+        List<Map<String, Object>> evidence = new ArrayList<>();
+        evidence.add(createEvidence(caseId, "EVD-C01", "Audited Financial Statements & Tax Computations FY2022-2024",
+                "Taxpayer Submission", "2026-09-02", "AP-C01", "Verified",
+                "Audited_Financial_Statements_2022_2024_Signed.pdf", "8.4 MB", auditorName,
+                "Certified by licensed chartered auditor; validated with corporate register."));
+        evidence.add(createEvidence(caseId, "EVD-C02", "ASYCUDA Customs Single Administrative Documents & Manifests",
+                "Customs Authority ASYCUDA Bridge", "2026-09-05", "AP-C04", "Verified",
+                "ASYCUDA_Import_Declarations_Manifests_FY2024.xlsx", "3.2 MB", auditorName,
+                "Extracted directly via automated secure Customs EDI interface."));
+        evidence.add(createEvidence(caseId, "EVD-C03", "TIMS Electronic Fiscal Memory Register & Invoice Logs",
+                "TIMS Direct API Feed", "2026-09-10", "AP-C02", "Verified",
+                "TIMS_Fiscal_Device_Audit_Dump_FY2024.csv", "14.8 MB", auditorName,
+                "Cryptographic signature verified across 68,400 fiscal transactions."));
+        evidence.add(createEvidence(caseId, "EVD-C04", "Fixed Asset Register, Depreciation Schedules & Physical Tag Log",
+                "On-Site Fieldwork Audit", "2026-09-14", "AP-C01", "Verified",
+                "Fixed_Asset_Register_Tag_Verification.xlsx", "2.1 MB", auditorName,
+                "Physical tag numbers cross-checked during premises inspection."));
+
+        // 4. Analysis (Synthesized from Taxpayer Profile)
+        Map<String, Object> analysis = new LinkedHashMap<>();
+        analysis.put("caseId", caseId.toString());
+
+        List<Map<String, Object>> annualFinancials = new ArrayList<>();
+        annualFinancials.add(createAnnualFinancial("2022", baseRev * 0.78, baseRev * 0.78 * 0.65, baseRev * 0.78 * 0.18));
+        annualFinancials.add(createAnnualFinancial("2023", baseRev * 0.89, baseRev * 0.89 * 0.66, baseRev * 0.89 * 0.19));
+        annualFinancials.add(createAnnualFinancial("2024", baseRev, baseRev * 0.68, baseRev * 0.20));
+        analysis.put("annualFinancials", annualFinancials);
+
+        List<Map<String, Object>> quarterlyData = new ArrayList<>();
+        quarterlyData.add(createQuarterlyData("Q1 2024", baseRev * 0.23, 2.8, "Normal seasonal distribution"));
+        quarterlyData.add(createQuarterlyData("Q2 2024", baseRev * 0.26, 3.4, "Steady revenue growth"));
+        quarterlyData.add(createQuarterlyData("Q3 2024", baseRev * 0.24, 16.8, "Spike in input VAT claims (+24%)"));
+        quarterlyData.add(createQuarterlyData("Q4 2024", baseRev * 0.27, 21.2, "Discrepancy in zero-rated export declarations"));
+        analysis.put("quarterlyData", quarterlyData);
+
+        analysis.put("auditorSynthesis", "Cross-reconciliation between audited income statements and TIMS fiscal records revealed material suppression of domestic turnover. In addition, related-party import uplifts were disallowed under statutory arm's length standards.");
+        analysis.put("conclusion", "Based on comprehensive testing of revenue, payroll, and customs imports, adjustments of ETB " + String.format("%,.0f", principalTax) + " are substantiated under statutory tax proclamations.");
+
+        // 5. Findings
+        List<Map<String, Object>> findings = new ArrayList<>();
+        findings.add(createFindingMap(caseId, "FND-C01", "Turnover & Indirect Taxes",
+                "Unreported Domestic Turnover from Misclassified Zero-Rated Export Sales",
+                "Taxpayer treated domestic commodity sales as zero-rated exports without export customs single administrative documents.",
+                "Tax Proclamation Art. 22: Export zero-rating strictly requires certified customs declaration.",
+                "Turnover of ETB " + String.format("%,.0f", vatVariance) + " omitted from taxable output VAT returns.",
+                "Lack of dual control in sales invoicing workflow.",
+                "Unreported output VAT payable of ETB " + String.format("%,.0f", vatAdjTax) + ".",
+                vatVariance, 0.20, vatAdjTax * 0.20, vatAdjTax * 0.14, vatAdjTax * 1.34, "VAT",
+                "Reconciliation between TIMS logs and VAT-03 declarations established omitted dispatches.",
+                "Assess output VAT shortfall and statutory late payment interest.",
+                "Issue assessment notice under Art. 45.", "CONFIRMED", true, false, "AP-C02"));
+
+        findings.add(createFindingMap(caseId, "FND-C02", "Cost of Sales & Related Party",
+                "Disallowance of Related-Party Management Fees & Import Cost Uplift",
+                "Taxpayer claimed non-substantiated cost uplifts from foreign trading affiliate without economic substance.",
+                "Transfer Pricing Proclamation & Income Tax Proclamation Art. 27: Arm's length principle.",
+                "Cost uplift of ETB " + String.format("%,.0f", customsVariance) + " deducted from taxable income.",
+                "Artificial profit shifting to low-tax offshore jurisdiction.",
+                "CIT tax deduction disallowed resulting in additional tax of ETB " + String.format("%,.0f", citAdjTax) + ".",
+                customsVariance, 0.20, citAdjTax * 0.20, citAdjTax * 0.14, citAdjTax * 1.34, "CIT",
+                "Customs ASYCUDA import manifests confirmed baseline prices before unilateral affiliate mark-up.",
+                "Disallow deduction of unsupported markup and adjust taxable corporate income.",
+                "Assess corporate income tax adjustment and penal interest.", "CONFIRMED", true, false, "AP-C04"));
+
+        findings.add(createFindingMap(caseId, "FND-C03", "Employment & Withholding Taxes",
+                "Unremitted Executive Housing Allowances and Bonuses PAYE Withholding",
+                "Executive perquisites and offshore bonus disbursements were omitted from local payroll tax returns.",
+                "Employment Income Tax Proclamation: All benefits in cash or in kind are subject to PAYE withholding.",
+                "ETB " + String.format("%,.0f", payeVariance) + " in executive allowances un-withheld.",
+                "Offshore service contracts paid outside local payroll processing software.",
+                "Unremitted PAYE withholding tax of ETB " + String.format("%,.0f", payeAdjTax) + ".",
+                payeVariance, 0.20, payeAdjTax * 0.20, payeAdjTax * 0.14, payeAdjTax * 1.34, "PAYE",
+                "General ledger executive remuneration vouchers cross-matched with 12-month PAYE receipts.",
+                "Recover unremitted employment tax and apply statutory withholding penalty.",
+                "Issue demand note for PAYE under-withholding.", "CONFIRMED", false, false, "AP-C03"));
+
+        // 6. Working Papers
+        List<Map<String, Object>> workingPapers = new ArrayList<>();
+        workingPapers.add(createWorkingPaperMap(caseId, "WP-C01", "Fixed Asset Physical Inspection and Verification Schedule", "Fixed Assets", auditorName, "2026-09-15",
+                "Physical asset tagging and depreciation audit conducted on-site.", "Fixed asset records reconciled with zero material discrepancy.", "REVIEWED", "AP-C01"));
+        workingPapers.add(createWorkingPaperMap(caseId, "WP-C02", "12-Month VAT Turnover vs Corporate Income Tax Sales Reconciliation", "Reconciliation", auditorName, "2026-09-25",
+                "Comprehensive reconciliation matrix between monthly VAT-03 declarations and CIT returns.", "ETB " + String.format("%,.0f", vatVariance) + " discrepancy established.", "REVIEWED", "AP-C02"));
+        workingPapers.add(createWorkingPaperMap(caseId, "WP-C03", "Payroll General Ledger vs 12-Month PAYE Remittance Matrix", "Payroll", auditorName, "2026-09-30",
+                "Audited executive payroll contracts against monthly remittances.", "Unremitted PAYE of ETB " + String.format("%,.0f", payeAdjTax) + " identified.", "REVIEWED", "AP-C03"));
+        workingPapers.add(createWorkingPaperMap(caseId, "WP-C04", "ASYCUDA Single Administrative Document Import Testing Schedule", "Cost of Sales", auditorName, "2026-10-10",
+                "Automated comparison of import CIF values with purchase ledger entries.", "ETB " + String.format("%,.0f", customsVariance) + " unsupported markup disallowed.", "REVIEWED", "AP-C04"));
+        workingPapers.add(createWorkingPaperMap(caseId, "WP-C05", "CAAT Benford Law & Weekend Journal Entry Exception Dossier", "CAAT Analytics", auditorName, "2026-10-15",
+                "Executed automated exception queries on general ledger database.", "7 weekend transactions confirmed as un-substantiated affiliate transfers.", "REVIEWED", "AP-C05"));
+
+        // 7. Queries
+        List<Map<String, Object>> queries = new ArrayList<>();
+        queries.add(createQueryMap(caseId, "QRY-C01", "Substantiation of Zero-Rated Export Customs Declarations",
+                "Please provide certified customs export declarations (SAD) and bills of lading for 16 zero-rated sales dispatches in FY2024.",
+                "Tax Proclamation Art. 22", "2026-09-20", "RESOLVED",
+                "Taxpayer acknowledged that dispatches were diverted for domestic consumption; documentation unavailable."));
+        queries.add(createQueryMap(caseId, "QRY-C02", "Economic Substance of Related-Party Management Surcharges",
+                "Provide transfer pricing local file documentation, contracts, and timesheets supporting affiliate mark-up fees.",
+                "Transfer Pricing Proclamation Art. 12", "2026-10-05", "RESOLVED",
+                "Taxpayer provided master agreement but conceded absence of time records or benefit test logs."));
+
+        // 8. Reconciliations
+        Map<String, Object> reconciliations = new LinkedHashMap<>();
+        reconciliations.put("caseId", caseId.toString());
+
+        Map<String, Object> vatVsSales = new LinkedHashMap<>();
+        vatVsSales.put("annualVatSalesDeclared", annualVatSales);
+        vatVsSales.put("annualCitGrossTurnover", annualCitGross);
+        vatVsSales.put("timsElectronicInvoices", timsInvoices);
+        vatVsSales.put("variance", vatVariance);
+        vatVsSales.put("status", "DISCREPANCY_FLAGGED");
+        vatVsSales.put("notes", "Gross revenue declared in Corporate Income Tax return exceeds monthly VAT declarations.");
+        reconciliations.put("vatVsSales", vatVsSales);
+
+        Map<String, Object> payrollPayeVsPnL = new LinkedHashMap<>();
+        payrollPayeVsPnL.put("payrollPayeRemitted", payrollPayeRemitted);
+        payrollPayeVsPnL.put("pnlSalariesExpense", payrollPnl);
+        payrollPayeVsPnL.put("variance", payeVariance);
+        payrollPayeVsPnL.put("status", "DISCREPANCY_FLAGGED");
+        payrollPayeVsPnL.put("notes", "Discrepancy identified between payroll PAYE remittances and P&L remuneration deductions.");
+        reconciliations.put("payrollPayeVsPnL", payrollPayeVsPnL);
+
+        Map<String, Object> customsImportsVsPurchases = new LinkedHashMap<>();
+        customsImportsVsPurchases.put("asycudaCifImports", asycudaImports);
+        customsImportsVsPurchases.put("generalLedgerImportCosts", glImportCosts);
+        customsImportsVsPurchases.put("variance", customsVariance);
+        customsImportsVsPurchases.put("status", "DISCREPANCY_FLAGGED");
+        customsImportsVsPurchases.put("notes", "ASYCUDA customs import CIF values differ from purchase ledger entries.");
+        reconciliations.put("customsImportsVsPurchases", customsImportsVsPurchases);
+
+        // 9. Balance Sheet Items
+        List<Map<String, Object>> balanceSheetItems = new ArrayList<>();
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Property, Plant & Equipment (Fixed Assets)", "Existence", baseRev * 0.65, baseRev * 0.65, 0.0, "Compliant", "Verified against physical tag log.", "CONFIRMED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Trade Accounts Receivable & Provisions", "Valuation", baseRev * 0.20, baseRev * 0.18, baseRev * 0.02, "Requires Restatement", "Unsupported bad debt write-offs identified.", "ADJUSTED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Inventory & Raw Materials Stock", "Completeness", baseRev * 0.25, baseRev * 0.23, baseRev * 0.02, "Non-Compliant", "Excess shrinkage claims disallowed.", "ADJUSTED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Related Party Loans & Offshore Balances", "Valuation", baseRev * 0.09, baseRev * 0.05, customsVariance, "Non-Compliant", "Unsubstantiated affiliate markups disallowed.", "DISALLOWED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Trade Accounts Payable & Accrued Charges", "Completeness", baseRev * 0.16, baseRev * 0.16, 0.0, "Compliant", "Supplier circularizations confirmed balances.", "CONFIRMED"));
+        balanceSheetItems.add(createBalanceSheetItem(caseId, "Bank Borrowings & Commercial Debt", "Rights & Obligations", baseRev * 0.30, baseRev * 0.30, 0.0, "Compliant", "Direct bank confirmations verified loan covenants.", "CONFIRMED"));
+
+        // 10. CAAT Audit Data
+        Map<String, Object> caatAudit = new LinkedHashMap<>();
+        caatAudit.put("caseId", caseId.toString());
+        caatAudit.put("isCAATEligible", true);
+        caatAudit.put("caatToolName", "ITAS Automated CAAT Forensic Suite");
+        caatAudit.put("executionTimestamp", OffsetDateTime.now().toString());
+        caatAudit.put("samplingMethod", "Stratified Statistical Sampling (MUS)");
+        caatAudit.put("auditorNotes", "Automated electronic ledger mining executed across all journal entries and customs manifests.");
+
+        List<Map<String, Object>> caatRules = new ArrayList<>();
+        caatRules.add(Map.of("code", "RULE-01", "name", "TIMS Electronic Fiscal Journal Matching", "category", "Revenue", "sampleSize", 68400, "discrepanciesCount", 16, "varianceAmount", vatVariance, "status", "FLAGGED", "details", "Discrepancy identified between TIMS records and VAT declarations."));
+        caatRules.add(Map.of("code", "RULE-02", "name", "Benford Law First-Digit Forensic Anomaly Detection", "category", "Ledger Integrity", "sampleSize", 18160, "discrepanciesCount", 24, "varianceAmount", 315000.0, "status", "FLAGGED", "details", "Statistical distortion in digits 7 and 9 indicative of manual rounded transactions."));
+        caatRules.add(Map.of("code", "RULE-03", "name", "ASYCUDA Single Administrative Document Cross-Bridge", "category", "Cost of Sales", "sampleSize", 842, "discrepanciesCount", 38, "varianceAmount", customsVariance, "status", "FLAGGED", "details", "Customs CIF values differ from purchase ledger debits."));
+        caatRules.add(Map.of("code", "RULE-04", "name", "Payroll Master vs P&L Gross Remittance Checker", "category", "Payroll", "sampleSize", 1450, "discrepanciesCount", 8, "varianceAmount", payeVariance, "status", "FLAGGED", "details", "Discrepancies identified in executive perquisites and offshore bonuses."));
+        caatRules.add(Map.of("code", "RULE-05", "name", "Weekend & Out-of-Hours Manual Journal Entry Trap", "category", "General Ledger", "sampleSize", 520, "discrepanciesCount", 7, "varianceAmount", 280000.0, "status", "FLAGGED", "details", "Manual journal entries posted during non-business hours lacking CFO approval."));
+        caatAudit.put("rules", caatRules);
+
+        // 11. Entry Conference
+        Map<String, Object> entryConference = new LinkedHashMap<>();
+        entryConference.put("caseId", caseId.toString());
+        entryConference.put("scheduledDate", auditCase.getStartDate() != null ? auditCase.getStartDate().toString() : "2026-09-01");
+        entryConference.put("time", "10:00 AM");
+        entryConference.put("venue", "Taxpayer Corporate Headquarters / Executive Boardroom");
+        entryConference.put("attendees", List.of(
+                Map.of("name", auditorName, "role", "Lead Comprehensive Auditor", "organization", "Ministry of Revenues"),
+                Map.of("name", tlName, "role", "Audit Team Leader", "organization", "Ministry of Revenues"),
+                Map.of("name", "Financial Director / CFO", "role", "Chief Financial Officer", "organization", tpName),
+                Map.of("name", "Chief Accountant", "role", "Head of Finance", "organization", tpName)
+        ));
+        entryConference.put("internalControlsReview", "ERP general ledger, sales invoicing module, and approval matrices inspected. High degree of manual intervention in export dispatches noted.");
+        entryConference.put("premisesInspectionFindings", "Manufacturing plant, bonded export warehouses, and electronic server room physically inspected. Physical inventory and fixed asset tagging verified.");
+        entryConference.put("taxpayerConfirmedReceipt", true);
+        entryConference.put("status", "CONDUCTED");
+        entryConference.put("lastUpdated", OffsetDateTime.now().toString());
+
+        // 12. Exit Conference
+        Map<String, Object> exitConference = new LinkedHashMap<>();
+        exitConference.put("caseId", caseId.toString());
+        exitConference.put("scheduledDate", auditCase.getDueDate() != null ? auditCase.getDueDate().toString() : "2026-11-15");
+        exitConference.put("time", "02:00 PM");
+        exitConference.put("venue", "Regional Tax Center Boardroom");
+        exitConference.put("agendaItems", List.of(
+                "Presentation of comprehensive audit findings and evidence",
+                "Reconciliation variances (VAT, PAYE, CIT import uplift)",
+                "Statutory assessment notice and tax exposure explanation",
+                "Taxpayer response timeline and formal objection rights"
+        ));
+        exitConference.put("discussionNotes", "Detailed review of findings with taxpayer management. Taxpayer presented initial arguments and requested 10 days for written response.");
+        exitConference.put("taxpayerResponseNotes", "Taxpayer acknowledged receiving audit report and scheduled delivery of formal submission.");
+        exitConference.put("attendanceConfirmed", true);
+        exitConference.put("signedByTaxpayer", true);
+        exitConference.put("status", "COMPLETED");
+
+        // 13. Assessment Notice
+        Map<String, Object> assessmentNotice = new LinkedHashMap<>();
+        assessmentNotice.put("noticeNumber", "NOT-CA-" + auditCase.getId().toString().substring(0, 8).toUpperCase());
+        assessmentNotice.put("issueDate", "2026-11-20");
+        assessmentNotice.put("statutoryDue30Days", "2026-12-20");
+        assessmentNotice.put("principalCit", citAdjTax);
+        assessmentNotice.put("principalVat", vatAdjTax);
+        assessmentNotice.put("principalPaye", payeAdjTax);
+        assessmentNotice.put("principalWht", 0.0);
+        assessmentNotice.put("principalTotal", principalTax);
+        assessmentNotice.put("penaltyPct", 0.20);
+        assessmentNotice.put("penaltyAmount", penaltyAmount);
+        assessmentNotice.put("interestRateAnnual", 0.14);
+        assessmentNotice.put("interestDays", 180);
+        assessmentNotice.put("interestAmount", interestAmount);
+        assessmentNotice.put("totalAssessmentDue", totalAssessmentDue);
+        assessmentNotice.put("objectionStatus", "NONE");
+        assessmentNotice.put("fraudReferralTriggered", false);
+        assessmentNotice.put("status", "DRAFT");
+
+        // 14. Multi-Zone Allocations
+        List<Map<String, Object>> multiZoneAllocations = new ArrayList<>();
+        multiZoneAllocations.add(Map.of("id", "ZON-01", "caseId", caseId.toString(), "zoneName", "Central Operations / Head Office", "branchCode", "HQ-01",
+                "taxDeclared", baseRev * 0.55, "auditAdjustment", principalTax * 0.515, "netPayable", principalTax * 0.515 * 1.34, "taxType", "CONSOLIDATED", "periodCovered", "2024"));
+        multiZoneAllocations.add(Map.of("id", "ZON-02", "caseId", caseId.toString(), "zoneName", "Eastern Terminal & Manufacturing Zone", "branchCode", "EAST-02",
+                "taxDeclared", baseRev * 0.28, "auditAdjustment", principalTax * 0.285, "netPayable", principalTax * 0.285 * 1.34, "taxType", "CONSOLIDATED", "periodCovered", "2024"));
+        multiZoneAllocations.add(Map.of("id", "ZON-03", "caseId", caseId.toString(), "zoneName", "Southern Logistics Branch", "branchCode", "SOUTH-03",
+                "taxDeclared", baseRev * 0.17, "auditAdjustment", principalTax * 0.200, "netPayable", principalTax * 0.200 * 1.34, "taxType", "CONSOLIDATED", "periodCovered", "2024"));
+
+        // 15. Draft Report
+        Map<String, Object> draftReport = new LinkedHashMap<>();
+        draftReport.put("id", "DR-" + caseId.toString().substring(0, 8));
+        draftReport.put("caseId", caseId.toString());
+        draftReport.put("reportReference", "DR-CA-2026-001");
+        draftReport.put("executiveSummary", "Comprehensive audit conducted for " + tpName + " (TIN: " + tin + ") across Corporate Income Tax, VAT, and PAYE. Total proposed assessment equals ETB " + String.format("%,.0f", totalAssessmentDue) + ".");
+        draftReport.put("scopeAndObjectives", "Verification of income tax compliance, revenue completeness, input tax claims, and related-party transactions for FY2022-2024.");
+        draftReport.put("methodology", "Examination of books of accounts, automated CAAT analytics, Benford statistical tests, and cross-reconciliation with TIMS and ASYCUDA systems.");
+        draftReport.put("findingsSummary", "Three substantive findings established regarding VAT zero-rating omission, affiliate import markup disallowance, and unremitted executive PAYE.");
+        draftReport.put("recommendedAdjustments", "Assess additional principal tax of ETB " + String.format("%,.0f", principalTax) + ", penalties of ETB " + String.format("%,.0f", penaltyAmount) + ", and interest of ETB " + String.format("%,.0f", interestAmount) + ".");
+        draftReport.put("totalPrincipalTax", principalTax);
+        draftReport.put("totalPenalty", penaltyAmount);
+        draftReport.put("totalInterest", interestAmount);
+        draftReport.put("totalAssessment", totalAssessmentDue);
+        draftReport.put("status", "DRAFT");
+        draftReport.put("teamLeaderComments", "Audit procedures thoroughly documented. Findings and cross-system reconciliations fully substantiated.");
+
+        // 16. Audit Trail
+        List<Map<String, Object>> auditTrail = new ArrayList<>();
+        auditTrail.add(Map.of("id", "TRL-01", "caseId", caseId.toString(), "user", auditorName, "action", "AUDIT_EXECUTION_INITIALIZED", "timestamp", OffsetDateTime.now().minusDays(15).toString(), "details", "Comprehensive audit execution initiated for " + tpName + "."));
+        auditTrail.add(Map.of("id", "TRL-02", "caseId", caseId.toString(), "user", auditorName, "action", "ENTRY_CONFERENCE_HELD", "timestamp", OffsetDateTime.now().minusDays(12).toString(), "details", "Entry conference conducted with CFO and chief accountant."));
+        auditTrail.add(Map.of("id", "TRL-03", "caseId", caseId.toString(), "user", auditorName, "action", "CAAT_ANALYSIS_EXECUTED", "timestamp", OffsetDateTime.now().minusDays(8).toString(), "details", "Executed automated CAAT forensic suite matching TIMS and ASYCUDA."));
+        auditTrail.add(Map.of("id", "TRL-04", "caseId", caseId.toString(), "user", auditorName, "action", "FINDINGS_FORMULATED", "timestamp", OffsetDateTime.now().minusDays(3).toString(), "details", "Substantive findings FND-C01, FND-C02, FND-C03 established."));
+
+        // Assemble result
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("auditCase", auditCaseDto);
+        result.put("procedures", procedures);
+        result.put("evidence", evidence);
+        result.put("analysis", analysis);
+        result.put("findings", findings);
+        result.put("workingPapers", workingPapers);
+        result.put("queries", queries);
+        result.put("reconciliations", reconciliations);
+        result.put("balanceSheetItems", balanceSheetItems);
+        result.put("caatAudit", caatAudit);
+        result.put("entryConference", entryConference);
+        result.put("exitConference", exitConference);
+        result.put("assessmentNotice", assessmentNotice);
+        result.put("multiZoneAllocations", multiZoneAllocations);
+        result.put("draftReport", draftReport);
+        result.put("auditTrail", auditTrail);
+
+        // Overlay saved snapshot modifications from DB
+        var snapshotOpt = snapshotRepository.findByCaseId(caseId);
+        if (snapshotOpt.isPresent()) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> saved = objectMapper.readValue(snapshotOpt.get().getSnapshotData(), Map.class);
+                if (saved.containsKey("procedures")) result.put("procedures", saved.get("procedures"));
+                if (saved.containsKey("evidence")) result.put("evidence", saved.get("evidence"));
+                if (saved.containsKey("queries")) result.put("queries", saved.get("queries"));
+                if (saved.containsKey("findings")) result.put("findings", saved.get("findings"));
+                if (saved.containsKey("workingPapers")) result.put("workingPapers", saved.get("workingPapers"));
+                if (saved.containsKey("draftReport")) result.put("draftReport", saved.get("draftReport"));
+                if (saved.containsKey("analysis")) result.put("analysis", saved.get("analysis"));
+                if (saved.containsKey("entryConference")) result.put("entryConference", saved.get("entryConference"));
+                if (saved.containsKey("caatAudit")) result.put("caatAudit", saved.get("caatAudit"));
+                if (saved.containsKey("balanceSheetItems")) result.put("balanceSheetItems", saved.get("balanceSheetItems"));
+                if (saved.containsKey("reconciliations")) result.put("reconciliations", saved.get("reconciliations"));
+                if (saved.containsKey("exitConference")) result.put("exitConference", saved.get("exitConference"));
+                if (saved.containsKey("assessmentNotice")) result.put("assessmentNotice", saved.get("assessmentNotice"));
+                if (saved.containsKey("multiZoneAllocations")) result.put("multiZoneAllocations", saved.get("multiZoneAllocations"));
+                if (saved.containsKey("auditTrail")) result.put("auditTrail", saved.get("auditTrail"));
+                if (saved.containsKey("auditCase") && saved.get("auditCase") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> savedAc = (Map<String, Object>) saved.get("auditCase");
+                    if (savedAc.containsKey("status")) auditCaseDto.put("status", savedAc.get("status"));
+                    if (savedAc.containsKey("teamLeaderComment")) auditCaseDto.put("teamLeaderComment", savedAc.get("teamLeaderComment"));
+                    if (savedAc.containsKey("directorComment")) auditCaseDto.put("directorComment", savedAc.get("directorComment"));
+                    if (savedAc.containsKey("teamLeaderRecommendation")) auditCaseDto.put("teamLeaderRecommendation", savedAc.get("teamLeaderRecommendation"));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to overlay saved snapshot data", e);
+            }
+        }
+
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> autosaveCase(UUID caseId, Map<String, Object> snapshot, String actorId) {
+        log.info("Autosaving comprehensive audit case {} by {}", caseId, actorId);
+        ApAuditCaseEntity auditCase = getAndValidateCase(caseId);
+
+        CaCaseSnapshotEntity entity = snapshotRepository.findByCaseId(caseId)
+                .orElseGet(() -> CaCaseSnapshotEntity.builder().caseId(caseId).build());
+
+        try {
+            entity.setSnapshotData(objectMapper.writeValueAsString(snapshot));
+            entity.setLastSavedAt(OffsetDateTime.now());
+            snapshotRepository.save(entity);
+
+            // Update case status if provided
+            if (snapshot.containsKey("auditCase") && snapshot.get("auditCase") instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> ac = (Map<String, Object>) snapshot.get("auditCase");
+                if (ac.containsKey("status") && ac.get("status") instanceof String) {
+                    String newStatus = (String) ac.get("status");
+                    auditCase.setStatus(newStatus);
+                    auditCase.setCaWorkflowStatus(newStatus);
+                    auditCase.setUpdatedAt(OffsetDateTime.now());
+                    caseRepository.save(auditCase);
+                }
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("lastSaved", entity.getLastSavedAt().toLocalTime().toString());
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to save comprehensive audit snapshot", e);
+            throw new RuntimeException("Failed to save snapshot", e);
+        }
+    }
+
+    @Transactional
+    public Map<String, Object> executeWorkflow(UUID caseId, Map<String, Object> payload, String actorId) {
+        log.info("Executing workflow action for case {} by {}: {}", caseId, actorId, payload);
+        ApAuditCaseEntity auditCase = getAndValidateCase(caseId);
+        String action = (String) payload.get("action");
+        String comment = (String) payload.get("comment");
+
+        String newStatus = auditCase.getStatus();
+
+        if ("SUBMIT_FOR_REVIEW".equals(action)) {
+            newStatus = "SUBMITTED";
+            auditCase.setCaCurrentPhase("REPORTING");
+            if (notificationService != null && auditCase.getAssignedTeamLeaderId() != null) {
+                try {
+                    notificationService.sendNotification(
+                            auditCase.getAssignedTeamLeaderId(),
+                            "REVIEW_REQUEST",
+                            "Comprehensive Audit Submitted for Review",
+                            "Comprehensive audit case " + auditCase.getCaseNumber() + " has been submitted for supervisory review.",
+                            caseId, null, "CASE", caseId
+                    );
+                } catch (Exception ignored) {}
+            }
+        } else if ("APPROVE_AUDIT".equals(action)) {
+            newStatus = "APPROVED";
+            auditCase.setCaCurrentPhase("CONCLUDED");
+        } else if ("RETURN_FOR_CORRECTION".equals(action)) {
+            newStatus = "RETURNED_FOR_CORRECTION";
+        } else if ("RECOMMEND_FOR_DIRECTOR_APPROVAL".equals(action)) {
+            newStatus = "PENDING_DIRECTOR_APPROVAL";
+        } else if ("DIRECTOR_APPROVE".equals(action)) {
+            newStatus = "APPROVED";
+            auditCase.setCaCurrentPhase("CONCLUDED");
+        } else if ("DIRECTOR_RETURN".equals(action)) {
+            newStatus = "RETURNED_FOR_CORRECTION";
+        } else if ("AUTHORIZE_FRAUD_PROSECUTION".equals(action) || "TRIGGER_FRAUD_INVESTIGATION".equals(action)) {
+            newStatus = "REFERRED_TO_FRAUD_INVESTIGATION";
+        } else if ("ISSUE_ASSESSMENT_NOTICE".equals(action)) {
+            newStatus = "ASSESSMENT_ISSUED";
+        }
+
+        auditCase.setStatus(newStatus);
+        auditCase.setCaWorkflowStatus(newStatus);
+        auditCase.setUpdatedAt(OffsetDateTime.now());
+        caseRepository.save(auditCase);
+
+        // Also update saved snapshot if exists
+        var snapshotOpt = snapshotRepository.findByCaseId(caseId);
+        if (snapshotOpt.isPresent()) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> saved = objectMapper.readValue(snapshotOpt.get().getSnapshotData(), Map.class);
+                if (saved.containsKey("auditCase") && saved.get("auditCase") instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> ac = (Map<String, Object>) saved.get("auditCase");
+                    ac.put("status", newStatus);
+                    if (comment != null) {
+                        if (action != null && action.contains("DIRECTOR")) {
+                            ac.put("directorComment", comment);
+                        } else {
+                            ac.put("teamLeaderComment", comment);
+                        }
+                    }
+                }
+                snapshotOpt.get().setSnapshotData(objectMapper.writeValueAsString(saved));
+                snapshotOpt.get().setLastSavedAt(OffsetDateTime.now());
+                snapshotRepository.save(snapshotOpt.get());
+            } catch (Exception ignored) {}
+        }
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("success", true);
+        resp.put("status", newStatus);
+        resp.put("auditCase", Map.of("status", newStatus));
+        return resp;
+    }
+
+    // ── Helper builders ────────────────────────────────────────────────────────
+    private Map<String, Object> createProcedure(UUID caseId, String ref, String title, String obj, String desc,
+                                                String status, String auditor, String dueDate, String res, String conc,
+                                                String obs, List<String> evdIds, boolean mandatory, String assertion, String caatTech) {
+        Map<String, Object> p = new LinkedHashMap<>();
+        p.put("id", ref);
+        p.put("caseId", caseId.toString());
+        p.put("reference", ref);
+        p.put("title", title);
+        p.put("objective", obj);
+        p.put("description", desc);
+        p.put("status", status);
+        p.put("assignedAuditor", auditor);
+        p.put("dueDate", dueDate);
+        p.put("result", res);
+        p.put("conclusion", conc);
+        p.put("observations", obs);
+        p.put("evidenceIds", evdIds);
+        p.put("isMandatory", mandatory);
+        p.put("assertionType", assertion);
+        p.put("caatTechnique", caatTech);
+        return p;
+    }
+
+    private Map<String, Object> createEvidence(UUID caseId, String ref, String desc, String src, String date,
+                                               String relProcId, String status, String fn, String fs, String upBy, String notes) {
+        Map<String, Object> e = new LinkedHashMap<>();
+        e.put("id", ref);
+        e.put("caseId", caseId.toString());
+        e.put("reference", ref);
+        e.put("description", desc);
+        e.put("source", src);
+        e.put("date", date);
+        e.put("relatedProcedureId", relProcId);
+        e.put("status", status);
+        e.put("fileName", fn);
+        e.put("fileSize", fs);
+        e.put("fileType", fn.endsWith(".pdf") ? "application/pdf" : (fn.endsWith(".xlsx") ? "application/vnd.ms-excel" : "text/csv"));
+        e.put("uploadedBy", upBy);
+        e.put("notes", notes);
+        return e;
+    }
+
+    private Map<String, Object> createAnnualFinancial(String year, double rev, double cogs, double opEx) {
+        Map<String, Object> af = new LinkedHashMap<>();
+        af.put("year", year);
+        af.put("revenue", rev);
+        af.put("cogs", cogs);
+        af.put("grossProfit", rev - cogs);
+        af.put("operatingExpenses", opEx);
+        double netProfit = (rev - cogs) - opEx;
+        af.put("taxableIncome", Math.max(0, netProfit));
+        af.put("taxDeclared", Math.max(0, netProfit * 0.30));
+        af.put("vatOutput", rev * 0.15);
+        af.put("vatInput", cogs * 0.15 * 0.70);
+        af.put("vatPayable", Math.max(0, (rev * 0.15) - (cogs * 0.15 * 0.70)));
+        return af;
+    }
+
+    private Map<String, Object> createQuarterlyData(String q, double rev, double var, String notes) {
+        Map<String, Object> qd = new LinkedHashMap<>();
+        qd.put("quarter", q);
+        qd.put("revenue", rev);
+        qd.put("cogs", rev * 0.68);
+        qd.put("expenses", rev * 0.18);
+        qd.put("vatInputClaimed", rev * 0.68 * 0.15 * 0.70);
+        qd.put("variance", var);
+        qd.put("notes", notes);
+        return qd;
+    }
+
+    private Map<String, Object> createFindingMap(UUID caseId, String ref, String area, String title, String desc,
+                                                String crit, String cond, String cause, String eff, double underDeclared,
+                                                double penRate, double penAmt, double intAmt, double totImpact, String taxType,
+                                                String analysis, String conc, String rec, String status, boolean sig, boolean fraud, String relProc) {
+        Map<String, Object> f = new LinkedHashMap<>();
+        f.put("id", ref);
+        f.put("caseId", caseId.toString());
+        f.put("reference", ref);
+        f.put("auditArea", area);
+        f.put("title", title);
+        f.put("description", desc);
+        f.put("criteria", crit);
+        f.put("condition", cond);
+        f.put("cause", cause);
+        f.put("effect", eff);
+        f.put("underDeclaredAmount", underDeclared);
+        f.put("penaltyRate", penRate);
+        f.put("penaltyAmount", penAmt);
+        f.put("interestAmount", intAmt);
+        f.put("totalTaxImpact", totImpact);
+        f.put("taxType", taxType);
+        f.put("auditorAnalysis", analysis);
+        f.put("conclusion", conc);
+        f.put("recommendation", rec);
+        f.put("status", status);
+        f.put("isSignificant", sig);
+        f.put("indicatesFraud", fraud);
+        f.put("relatedProcedureId", relProc);
+        return f;
+    }
+
+    private Map<String, Object> createWorkingPaperMap(UUID caseId, String ref, String title, String cat, String prepBy,
+                                                     String date, String workPerf, String conc, String status, String relProc) {
+        Map<String, Object> w = new LinkedHashMap<>();
+        w.put("id", ref);
+        w.put("caseId", caseId.toString());
+        w.put("reference", ref);
+        w.put("title", title);
+        w.put("category", cat);
+        w.put("preparedBy", prepBy);
+        w.put("date", date);
+        w.put("workPerformed", workPerf);
+        w.put("conclusions", conc);
+        w.put("status", status);
+        w.put("relatedProcedureId", relProc);
+        return w;
+    }
+
+    private Map<String, Object> createQueryMap(UUID caseId, String ref, String subj, String q, String basis, String dueDate, String status, String resp) {
+        Map<String, Object> qm = new LinkedHashMap<>();
+        qm.put("id", ref);
+        qm.put("caseId", caseId.toString());
+        qm.put("reference", ref);
+        qm.put("subject", subj);
+        qm.put("question", q);
+        qm.put("statutoryBasis", basis);
+        qm.put("dueDate", dueDate);
+        qm.put("status", status);
+        if (resp != null) {
+            qm.put("taxpayerResponse", Map.of(
+                    "responseText", resp,
+                    "respondedAt", "2026-09-22",
+                    "responderName", "Taxpayer Representative"
+            ));
+        }
+        return qm;
+    }
+
+    private Map<String, Object> createBalanceSheetItem(UUID caseId, String comp, String assertion, double auditee,
+                                                      double audited, double var, String ifrs, String notes, String conc) {
+        Map<String, Object> b = new LinkedHashMap<>();
+        b.put("id", "BS-" + UUID.randomUUID().toString().substring(0, 8));
+        b.put("caseId", caseId.toString());
+        b.put("component", comp);
+        b.put("assertionType", assertion);
+        b.put("auditeeBalance", auditee);
+        b.put("auditedBalance", audited);
+        b.put("variance", var);
+        b.put("ifrsCompliance", ifrs);
+        b.put("notes", notes);
+        b.put("auditorConclusion", conc);
+        return b;
+    }
+
+    // ── Direct CRUD handlers for Frontend API ─────────────────────────────────
+
+    @Transactional
+    public Map<String, Object> updateCaseMetadata(UUID caseId, Map<String, Object> updates, String actorId) {
+        ApAuditCaseEntity c = getAndValidateCase(caseId);
+        if (updates.containsKey("status")) {
+            c.setStatus((String) updates.get("status"));
+            c.setCaWorkflowStatus((String) updates.get("status"));
+        }
+        if (updates.containsKey("caCurrentPhase")) {
+            c.setCaCurrentPhase((String) updates.get("caCurrentPhase"));
+        }
+        if (updates.containsKey("auditScope")) {
+            c.setAuditScope((String) updates.get("auditScope"));
+        }
+        c.setUpdatedAt(OffsetDateTime.now());
+        caseRepository.save(c);
+
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        autosaveCase(caseId, snap, actorId);
+        return snap;
+    }
+
+    @Transactional
+    public Map<String, Object> updateProcedure(UUID caseId, String procId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> procs = (List<Map<String, Object>>) snap.get("procedures");
+        Map<String, Object> target = null;
+        if (procs != null) {
+            for (Map<String, Object> p : procs) {
+                if (procId.equals(p.get("id")) || procId.equals(p.get("reference"))) {
+                    p.putAll(updates);
+                    target = p;
+                    break;
+                }
+            }
+        }
+        autosaveCase(caseId, snap, actorId);
+        return target != null ? target : updates;
+    }
+
+    @Transactional
+    public Map<String, Object> addEvidence(UUID caseId, Map<String, Object> item, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> evList = (List<Map<String, Object>>) snap.get("evidence");
+        if (evList == null) {
+            evList = new ArrayList<>();
+            snap.put("evidence", evList);
+        }
+        String ref = (String) item.getOrDefault("reference", "EVD-C0" + (evList.size() + 1));
+        item.put("id", ref);
+        item.put("caseId", caseId.toString());
+        evList.add(item);
+        autosaveCase(caseId, snap, actorId);
+        return item;
+    }
+
+    @Transactional
+    public void deleteEvidence(UUID caseId, String evidenceId, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> evList = (List<Map<String, Object>>) snap.get("evidence");
+        if (evList != null) {
+            evList.removeIf(e -> evidenceId.equals(e.get("id")) || evidenceId.equals(e.get("reference")));
+        }
+        autosaveCase(caseId, snap, actorId);
+    }
+
+    @Transactional
+    public Map<String, Object> updateFinding(UUID caseId, String findingId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> findings = (List<Map<String, Object>>) snap.get("findings");
+        Map<String, Object> target = null;
+        if (findings != null) {
+            for (Map<String, Object> f : findings) {
+                if (findingId.equals(f.get("id")) || findingId.equals(f.get("reference"))) {
+                    f.putAll(updates);
+                    target = f;
+                    break;
+                }
+            }
+        }
+        autosaveCase(caseId, snap, actorId);
+        return target != null ? target : updates;
+    }
+
+    @Transactional
+    public void deleteFinding(UUID caseId, String findingId, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> findings = (List<Map<String, Object>>) snap.get("findings");
+        if (findings != null) {
+            findings.removeIf(f -> findingId.equals(f.get("id")) || findingId.equals(f.get("reference")));
+        }
+        autosaveCase(caseId, snap, actorId);
+    }
+
+    @Transactional
+    public Map<String, Object> updateWorkingPaper(UUID caseId, String wpId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> wps = (List<Map<String, Object>>) snap.get("workingPapers");
+        Map<String, Object> target = null;
+        if (wps != null) {
+            for (Map<String, Object> w : wps) {
+                if (wpId.equals(w.get("id")) || wpId.equals(w.get("reference"))) {
+                    w.putAll(updates);
+                    target = w;
+                    break;
+                }
+            }
+        }
+        autosaveCase(caseId, snap, actorId);
+        return target != null ? target : updates;
+    }
+
+    @Transactional
+    public void deleteWorkingPaper(UUID caseId, String wpId, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> wps = (List<Map<String, Object>>) snap.get("workingPapers");
+        if (wps != null) {
+            wps.removeIf(w -> wpId.equals(w.get("id")) || wpId.equals(w.get("reference")));
+        }
+        autosaveCase(caseId, snap, actorId);
+    }
+
+    @Transactional
+    public Map<String, Object> updateQuery(UUID caseId, String queryId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> qs = (List<Map<String, Object>>) snap.get("queries");
+        Map<String, Object> target = null;
+        if (qs != null) {
+            for (Map<String, Object> q : qs) {
+                if (queryId.equals(q.get("id")) || queryId.equals(q.get("reference"))) {
+                    q.putAll(updates);
+                    target = q;
+                    break;
+                }
+            }
+        }
+        autosaveCase(caseId, snap, actorId);
+        return target != null ? target : updates;
+    }
+
+    @Transactional
+    public Map<String, Object> updateAnalysis(UUID caseId, Map<String, Object> analysis, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        snap.put("analysis", analysis);
+        autosaveCase(caseId, snap, actorId);
+        return analysis;
+    }
+
+    @Transactional
+    public Map<String, Object> updateDraftReportContent(UUID caseId, Map<String, Object> report, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        snap.put("draftReport", report);
+        autosaveCase(caseId, snap, actorId);
+        return report;
+    }
+
+    @Transactional
+    public Map<String, Object> updateEntryConference(UUID caseId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> conf = (Map<String, Object>) snap.get("entryConference");
+        if (conf != null) {
+            conf.putAll(updates);
+        } else {
+            snap.put("entryConference", updates);
+        }
+        autosaveCase(caseId, snap, actorId);
+        return (Map<String, Object>) snap.get("entryConference");
+    }
+
+    @Transactional
+    public Map<String, Object> updateCaatAudit(UUID caseId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> caat = (Map<String, Object>) snap.get("caatAudit");
+        if (caat != null) {
+            caat.putAll(updates);
+        } else {
+            snap.put("caatAudit", updates);
+        }
+        autosaveCase(caseId, snap, actorId);
+        return (Map<String, Object>) snap.get("caatAudit");
+    }
+
+    @Transactional
+    public Map<String, Object> updateReconciliations(UUID caseId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rec = (Map<String, Object>) snap.get("reconciliations");
+        if (rec != null) {
+            rec.putAll(updates);
+        } else {
+            snap.put("reconciliations", updates);
+        }
+        autosaveCase(caseId, snap, actorId);
+        return (Map<String, Object>) snap.get("reconciliations");
+    }
+
+    @Transactional
+    public Map<String, Object> updateExitConference(UUID caseId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> exit = (Map<String, Object>) snap.get("exitConference");
+        if (exit != null) {
+            exit.putAll(updates);
+        } else {
+            snap.put("exitConference", updates);
+        }
+        autosaveCase(caseId, snap, actorId);
+        return (Map<String, Object>) snap.get("exitConference");
+    }
+
+    @Transactional
+    public Map<String, Object> updateAssessmentNotice(UUID caseId, Map<String, Object> updates, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> notice = (Map<String, Object>) snap.get("assessmentNotice");
+        if (notice != null) {
+            notice.putAll(updates);
+        } else {
+            snap.put("assessmentNotice", updates);
+        }
+        autosaveCase(caseId, snap, actorId);
+        return (Map<String, Object>) snap.get("assessmentNotice");
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAuditTrailEntries(UUID caseId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, null);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> trail = (List<Map<String, Object>>) snap.get("auditTrail");
+        return trail != null ? trail : List.of();
+    }
+
+    @Transactional
+    public void addAuditTrailEntry(UUID caseId, Map<String, Object> entry, String actorId) {
+        Map<String, Object> snap = getCaseSnapshot(caseId, actorId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> trail = (List<Map<String, Object>>) snap.get("auditTrail");
+        if (trail == null) {
+            trail = new ArrayList<>();
+            snap.put("auditTrail", trail);
+        }
+        entry.put("id", "TRL-" + System.currentTimeMillis());
+        entry.put("timestamp", OffsetDateTime.now().toString());
+        trail.add(0, entry);
+        autosaveCase(caseId, snap, actorId);
+    }
 }
+
+

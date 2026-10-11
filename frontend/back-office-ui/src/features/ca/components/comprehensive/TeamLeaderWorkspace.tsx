@@ -46,17 +46,19 @@ import { AuditTrailDrawer } from '../workspace/AuditTrailDrawer';
 
 interface TeamLeaderWorkspaceProps {
   currentUser: AuthUser;
+  initialCaseId?: string;
   onSelectCase?: (caseId: string) => void;
   onClose?: () => void;
 }
 
 export const TeamLeaderWorkspace: React.FC<TeamLeaderWorkspaceProps> = ({
   currentUser,
+  initialCaseId,
   onSelectCase,
   onClose
 }) => {
   const [casesList, setCasesList] = useState<any[]>([]);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('CA-2026-102');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(initialCaseId || 'CA-2026-102');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [caseLoading, setCaseLoading] = useState<boolean>(false);
   const [filterActionOnly, setFilterActionOnly] = useState<boolean>(true);

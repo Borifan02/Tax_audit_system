@@ -263,6 +263,45 @@ export const ComprehensiveAuditWorkspace: React.FC<ComprehensiveAuditWorkspacePr
     };
   }, [evidenceList, procedures, queries, findings, workingPapers, reconciliations, exitConference, caseData?.status]);
 
+  // Keep fresh ref to all workspace data for debounce autosave
+  const workspaceStateRef = useRef({
+    caseData,
+    procedures,
+    evidenceList,
+    queries,
+    findings,
+    workingPapers,
+    draftReport,
+    analysis,
+    entryConference,
+    caatAudit,
+    balanceSheetItems,
+    reconciliations,
+    exitConference,
+    assessmentNotice,
+    multiZoneAllocations
+  });
+
+  useEffect(() => {
+    workspaceStateRef.current = {
+      caseData,
+      procedures,
+      evidenceList,
+      queries,
+      findings,
+      workingPapers,
+      draftReport,
+      analysis,
+      entryConference,
+      caatAudit,
+      balanceSheetItems,
+      reconciliations,
+      exitConference,
+      assessmentNotice,
+      multiZoneAllocations
+    };
+  });
+
   // Autosave trigger with debounce
   const triggerAutosave = useCallback(() => {
     setSaveStatus('unsaved');
@@ -272,18 +311,32 @@ export const ComprehensiveAuditWorkspace: React.FC<ComprehensiveAuditWorkspacePr
     autosaveTimerRef.current = setTimeout(async () => {
       setSaveStatus('saving');
       try {
-        const timeStr = new Date().toLocaleTimeString();
-        if (caseData) {
-          await itasApi.updateCase(activeCaseId, { lastSaved: timeStr });
-        }
-        setLastSaved(timeStr);
+        const cur = workspaceStateRef.current;
+        const res = await itasApi.autosaveCase(activeCaseId, {
+          auditCase: cur.caseData || undefined,
+          procedures: cur.procedures,
+          evidence: cur.evidenceList,
+          queries: cur.queries,
+          findings: cur.findings,
+          workingPapers: cur.workingPapers,
+          draftReport: cur.draftReport || undefined,
+          analysis: cur.analysis || undefined,
+          entryConference: cur.entryConference || undefined,
+          caatAudit: cur.caatAudit || undefined,
+          balanceSheetItems: cur.balanceSheetItems,
+          reconciliations: cur.reconciliations || undefined,
+          exitConference: cur.exitConference || undefined,
+          assessmentNotice: cur.assessmentNotice || undefined,
+          multiZoneAllocations: cur.multiZoneAllocations
+        });
+        setLastSaved(res.lastSaved || new Date().toLocaleTimeString());
         setSaveStatus('saved');
       } catch (err) {
         console.error('Autosave failed:', err);
         setSaveStatus('unsaved');
       }
     }, 2000);
-  }, [activeCaseId, caseData]);
+  }, [activeCaseId]);
 
   // Explicit Save Draft Button
   const handleSaveDraft = async () => {
@@ -292,17 +345,31 @@ export const ComprehensiveAuditWorkspace: React.FC<ComprehensiveAuditWorkspacePr
     }
     setSaveStatus('saving');
     try {
-      const timeStr = new Date().toLocaleTimeString();
-      if (caseData) {
-        await itasApi.updateCase(activeCaseId, { lastSaved: timeStr });
-      }
+      const cur = workspaceStateRef.current;
+      const res = await itasApi.autosaveCase(activeCaseId, {
+        auditCase: cur.caseData || undefined,
+        procedures: cur.procedures,
+        evidence: cur.evidenceList,
+        queries: cur.queries,
+        findings: cur.findings,
+        workingPapers: cur.workingPapers,
+        draftReport: cur.draftReport || undefined,
+        analysis: cur.analysis || undefined,
+        entryConference: cur.entryConference || undefined,
+        caatAudit: cur.caatAudit || undefined,
+        balanceSheetItems: cur.balanceSheetItems,
+        reconciliations: cur.reconciliations || undefined,
+        exitConference: cur.exitConference || undefined,
+        assessmentNotice: cur.assessmentNotice || undefined,
+        multiZoneAllocations: cur.multiZoneAllocations
+      });
       await itasApi.logAuditAction(
         activeCaseId,
-        caseData?.assignedAuditor || 'Jane Doe',
+        cur.caseData?.assignedAuditor || 'Jane Doe',
         'Draft Saved',
         `Comprehensive audit workspace draft manually saved at step "${COMP_STEPS[currentStepIndex]}".`
       );
-      setLastSaved(timeStr);
+      setLastSaved(res.lastSaved || new Date().toLocaleTimeString());
       setSaveStatus('saved');
       const updatedTrail = await itasApi.getAuditTrail(activeCaseId);
       setAuditTrail(updatedTrail);

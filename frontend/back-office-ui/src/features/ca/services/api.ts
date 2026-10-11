@@ -190,9 +190,14 @@ export const itasApi = {
     };
   }>> {
     try {
-      const res = await fetch('/api/v1/backoffice/ca/cases');
+      const res = await fetch('/api/v1/backoffice/ca/cases', {
+        headers: getRequestHeaders()
+      });
       if (res.ok) {
-        return await res.json();
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data;
+        }
       }
     } catch {
       // Fallback
@@ -235,7 +240,9 @@ export const itasApi = {
   // Get full case data
   async getCaseData(caseId: string): Promise<CaseFullData> {
     try {
-      const res = await fetch(`/api/v1/backoffice/ca/cases/${caseId}`);
+      const res = await fetch(`/api/v1/backoffice/ca/cases/${caseId}`, {
+        headers: getRequestHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         saveLocalCaseData(caseId, data);
@@ -256,7 +263,7 @@ export const itasApi = {
     try {
       const res = await fetch(`/api/v1/backoffice/ca/cases/${caseId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify(updates)
       });
       if (res.ok) return await res.json();
@@ -275,7 +282,7 @@ export const itasApi = {
     try {
       const res = await fetch(`/api/v1/backoffice/ca/cases/${caseId}/autosave`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify(snapshot)
       });
       if (res.ok) {
@@ -636,11 +643,18 @@ export const itasApi = {
       let realId = caseId;
       if (caseId === 'CA-2026-101' || caseId === 'COMP-2026-001') realId = 'c0000000-0000-0000-0000-000000000101';
       
-      const res = await fetch(`/api/v1/backoffice/da/cases/${realId}/workflow`, {
+      let res = await fetch(`/api/v1/backoffice/ca/cases/${realId}/workflow`, {
         method: 'POST',
         headers: getRequestHeaders(),
         body: JSON.stringify(payload)
       });
+      if (!res.ok) {
+        res = await fetch(`/api/v1/backoffice/da/cases/${realId}/workflow`, {
+          method: 'POST',
+          headers: getRequestHeaders(),
+          body: JSON.stringify(payload)
+        });
+      }
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || `Workflow action failed with status ${res.status}`);

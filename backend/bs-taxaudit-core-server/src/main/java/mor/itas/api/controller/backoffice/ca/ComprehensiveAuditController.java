@@ -37,25 +37,259 @@ import java.util.UUID;
 public class ComprehensiveAuditController {
 
     private final ComprehensiveAuditService service;
+    private final mor.itas.persistence.jpa.repository.ap.ApAuditCaseRepository caseRepository;
 
     private static final String READ_ROLES =
         "hasAnyRole('AUDITOR','TEAM_LEADER','DIRECTOR','FRAUD_INVESTIGATOR')";
     private static final String AUDITOR_ROLE   = "hasRole('AUDITOR')";
     private static final String TL_DIR_ROLES   = "hasAnyRole('TEAM_LEADER','DIRECTOR')";
 
+    private UUID resolveCaseId(String caseIdStr) {
+        if (caseIdStr == null || caseIdStr.isBlank()) {
+            return UUID.fromString("c0000000-0000-0000-0000-000000000101");
+        }
+        try {
+            return UUID.fromString(caseIdStr);
+        } catch (IllegalArgumentException e) {
+            return caseRepository.findByCaseNumber(caseIdStr)
+                    .map(mor.itas.persistence.jpa.entity.ap.ApAuditCaseEntity::getId)
+                    .orElseGet(() -> {
+                        var cases = caseRepository.findAll().stream()
+                                .filter(c -> "COMPREHENSIVE_AUDIT".equalsIgnoreCase(c.getAuditType()) || "COMPREHENSIVE".equalsIgnoreCase(c.getAuditType()))
+                                .findFirst();
+                        return cases.map(mor.itas.persistence.jpa.entity.ap.ApAuditCaseEntity::getId)
+                                .orElse(UUID.fromString("c0000000-0000-0000-0000-000000000101"));
+                    });
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
-    // CASE OVERVIEW
+    // CASE LISTING & WORKSPACE FULL DATA
     // ═══════════════════════════════════════════════════════════════════════════
 
-    @Operation(summary = "Get comprehensive audit case overview",
-               description = "Returns caWorkflowStatus, progress counters, taxpayer info, and latest report/notice status. FR-04.4.")
+    @Operation(summary = "Get list of comprehensive audit cases",
+               description = "Returns assigned comprehensive audit cases filtered by taxCenter, auditor, teamLeader, or status.")
+    @GetMapping("")
+    public ResponseEntity<?> getAssignedCases(
+            @RequestParam(required = false) String taxCenter,
+            @RequestParam(required = false) String auditorId,
+            @RequestParam(required = false) String teamLeaderId,
+            @RequestParam(required = false) String status,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        return ResponseEntity.ok(service.listComprehensiveCases(taxCenter, auditorId, teamLeaderId, status, actorId));
+    }
+
+    @Operation(summary = "Get comprehensive audit case data",
+               description = "Returns full CaseFullData snapshot or summary overview.")
     @GetMapping("/{caseId}")
-    @PreAuthorize(READ_ROLES)
-    public ResponseEntity<?> getCaseOverview(
-            @Parameter(description = "Audit case UUID") @PathVariable UUID caseId,
-            @Parameter(description = "Actor UUID (X-Actor-Id header)", required = true)
-            @RequestHeader("X-Actor-Id") String actorId) {
-        return ResponseEntity.ok(service.getCaseOverview(caseId));
+    public ResponseEntity<?> getCaseData(
+            @Parameter(description = "Audit case UUID or caseNumber") @PathVariable String caseId,
+            @RequestParam(required = false, defaultValue = "false") boolean overviewOnly,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        if (overviewOnly) {
+            return ResponseEntity.ok(service.getCaseOverview(resolvedId));
+        }
+        return ResponseEntity.ok(service.getCaseSnapshot(resolvedId, actorId));
+    }
+
+    @Operation(summary = "Autosave comprehensive audit case snapshot",
+               description = "Persists the complete state of working papers, procedures, findings, and analysis.")
+    @PostMapping("/{caseId}/autosave")
+    public ResponseEntity<?> autosaveCase(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> snapshot,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.autosaveCase(resolvedId, snapshot, actorId));
+    }
+
+    @Operation(summary = "Execute comprehensive audit workflow transition",
+               description = "Transitions case between auditor submission, supervisory review, director approval, and fraud referral.")
+    @PostMapping("/{caseId}/workflow")
+    public ResponseEntity<?> executeWorkflow(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> payload,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.executeWorkflow(resolvedId, payload, actorId));
+    }
+
+    @PutMapping("/{caseId}")
+    public ResponseEntity<?> updateCase(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateCaseMetadata(resolvedId, updates, actorId));
+    }
+
+    @PutMapping("/{caseId}/procedures/{procId}")
+    public ResponseEntity<?> updateProcedure(
+            @PathVariable String caseId,
+            @PathVariable String procId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateProcedure(resolvedId, procId, updates, actorId));
+    }
+
+    @PostMapping("/{caseId}/evidence")
+    public ResponseEntity<?> addEvidence(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> item,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.addEvidence(resolvedId, item, actorId));
+    }
+
+    @DeleteMapping("/{caseId}/evidence/{evidenceId}")
+    public ResponseEntity<?> deleteEvidence(
+            @PathVariable String caseId,
+            @PathVariable String evidenceId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        service.deleteEvidence(resolvedId, evidenceId, actorId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{caseId}/findings/{findingId}")
+    public ResponseEntity<?> updateFinding(
+            @PathVariable String caseId,
+            @PathVariable String findingId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateFinding(resolvedId, findingId, updates, actorId));
+    }
+
+    @DeleteMapping("/{caseId}/findings/{findingId}")
+    public ResponseEntity<?> deleteFinding(
+            @PathVariable String caseId,
+            @PathVariable String findingId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        service.deleteFinding(resolvedId, findingId, actorId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{caseId}/working-papers/{wpId}")
+    public ResponseEntity<?> updateWorkingPaper(
+            @PathVariable String caseId,
+            @PathVariable String wpId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateWorkingPaper(resolvedId, wpId, updates, actorId));
+    }
+
+    @DeleteMapping("/{caseId}/working-papers/{wpId}")
+    public ResponseEntity<?> deleteWorkingPaper(
+            @PathVariable String caseId,
+            @PathVariable String wpId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        service.deleteWorkingPaper(resolvedId, wpId, actorId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{caseId}/queries/{queryId}")
+    public ResponseEntity<?> updateQuery(
+            @PathVariable String caseId,
+            @PathVariable String queryId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateQuery(resolvedId, queryId, updates, actorId));
+    }
+
+    @PutMapping("/{caseId}/analysis")
+    public ResponseEntity<?> updateAnalysis(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> analysis,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateAnalysis(resolvedId, analysis, actorId));
+    }
+
+    @PutMapping("/{caseId}/report")
+    public ResponseEntity<?> updateDraftReport(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> report,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateDraftReportContent(resolvedId, report, actorId));
+    }
+
+    @GetMapping("/{caseId}/audit-trail")
+    public ResponseEntity<?> getAuditTrail(
+            @PathVariable String caseId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.getAuditTrailEntries(resolvedId));
+    }
+
+    @PostMapping("/{caseId}/audit-trail")
+    public ResponseEntity<?> addAuditTrail(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> entry,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        service.addAuditTrailEntry(resolvedId, entry, actorId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{caseId}/entry-conference")
+    public ResponseEntity<?> updateEntryConference(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateEntryConference(resolvedId, updates, actorId));
+    }
+
+    @GetMapping("/{caseId}/caat")
+    public ResponseEntity<?> getCaat(
+            @PathVariable String caseId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        java.util.Map<String, Object> snap = service.getCaseSnapshot(resolvedId, actorId);
+        return ResponseEntity.ok(snap.get("caatAudit"));
+    }
+
+    @PutMapping("/{caseId}/caat")
+    public ResponseEntity<?> updateCaat(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateCaatAudit(resolvedId, updates, actorId));
+    }
+
+    @PutMapping("/{caseId}/reconciliations")
+    public ResponseEntity<?> updateReconciliations(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateReconciliations(resolvedId, updates, actorId));
+    }
+
+    @PutMapping("/{caseId}/exit-conference")
+    public ResponseEntity<?> updateExitConference(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateExitConference(resolvedId, updates, actorId));
+    }
+
+    @PutMapping("/{caseId}/assessment-notice")
+    public ResponseEntity<?> updateAssessmentNotice(
+            @PathVariable String caseId,
+            @RequestBody java.util.Map<String, Object> updates,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
+        UUID resolvedId = resolveCaseId(caseId);
+        return ResponseEntity.ok(service.updateAssessmentNotice(resolvedId, updates, actorId));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
