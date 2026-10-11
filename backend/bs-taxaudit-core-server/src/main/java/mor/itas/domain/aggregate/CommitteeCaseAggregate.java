@@ -48,7 +48,7 @@ public class CommitteeCaseAggregate {
     private OffsetDateTime handoffDate;
 
     // Explicit getters/setters for failing methods
-    public String getStatus() { return this.status != null ? this.status.name() : null; }
+    public CommitteeCaseStatus getStatus() { return this.status; }
     public UUID getTeamLeadId() { return this.teamLeadId; }
     public UUID getChairpersonId() { return this.chairpersonId; }
     public void setHandoffRecordId(UUID id) { this.handoffRecordId = id; }

@@ -377,8 +377,12 @@ function CascadePlanToCasesView() {
     );
 
     if (existingCasesForPlan.length > 0) {
-      alert(`⚠️ WARNING: This plan has already been cascaded!\n\nExisting cases: ${existingCasesForPlan.length}\n\nYou cannot cascade the same plan twice to avoid duplication.`);
-      return;
+      const proceed = window.confirm(
+        `Notice: This plan already has ${existingCasesForPlan.length} case(s) created for ${selectedTaxCenter}.\n\nDo you want to proceed and create/add these selected cases?`
+      );
+      if (!proceed) {
+        return;
+      }
     }
 
     // VALIDATION 2: Check allocation limits per audit type

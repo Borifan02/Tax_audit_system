@@ -25,7 +25,6 @@ import java.util.UUID;
 @Slf4j
 @PreAuthorize("hasAnyRole('CHAIRPERSON', 'COMMITTEE_CHAIR', 'COMMITTEE_MEMBER') or permitAll()")
 public class CommitteeChairpersonController {
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CommitteeChairpersonController.class);
 
     private final FinalizeViabilityUseCase finalizeViabilityUseCase;
     private final AssignOfficialTeamUseCase assignOfficialTeamUseCase;

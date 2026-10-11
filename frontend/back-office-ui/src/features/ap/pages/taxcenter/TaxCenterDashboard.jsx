@@ -244,7 +244,9 @@ export default function TaxCenterDashboard({ view }) {
     'SENIOR_MGMT_APPROVED',
     'APPROVED_TO_REGIONS',
     'DEPLOYED',
-    'REGIONAL_DEPLOYED'
+    'REGIONAL_DEPLOYED',
+    'SENT_TO_TAX_CENTERS',
+    'REGIONAL_APPROVED'
   ], []);
 
   // Check if a plan already has cases created/cascaded
@@ -294,10 +296,14 @@ export default function TaxCenterDashboard({ view }) {
   };
 
   // ── CASCADE: trigger backend to create cases from plan allocation ──
-  const handleCascade = async (allocation) => {
-    if (planHasCases(allocation.planId)) {
-      alert("This audit plan has already been cascaded into cases. Re-cascading is disabled to protect existing audit assignments.");
-      return;
+  const handleCascade = async (allocation, force = false) => {
+    if (planHasCases(allocation.planId) && !force) {
+      const confirmRecascade = window.confirm(
+        `Audit cases have already been generated for this plan (${allocation.planName || allocation.planId}).\n\nDo you want to re-cascade / create cases based on the plan allocations?`
+      );
+      if (!confirmRecascade) {
+        return;
+      }
     }
     setCascading(allocation.planId);
     try {
@@ -321,11 +327,9 @@ export default function TaxCenterDashboard({ view }) {
         ...result.data
       });
       setCascadeModal(true);
-      // Reload cases and allocations
+      // Reload cases and allocations in background
       await loadCases();
       await loadTcAllocations();
-      // Force reload window/state so other dashboards pick up FINALIZED status
-      window.location.reload();
     } catch (error) {
       console.error('Cascade failed:', error);
       alert(`❌ Cascade Failed\n\n${error.message}`);
@@ -608,7 +612,21 @@ export default function TaxCenterDashboard({ view }) {
                               Create Cases
                             </Button>
                           )}
-                          {isCascaded && (
+                          {isPostApproval && isCascaded && (
+                            <>
+                              <Button size="xs" variant="success" icon={Play}
+                                loading={cascading === alloc.planId}
+                                onClick={() => handleCascade(alloc, true)}
+                                title="Re-cascade or create additional cases">
+                                Re-cascade
+                              </Button>
+                              <Button size="xs" variant="secondary" icon={Search}
+                                onClick={() => scrollToCases(alloc)}>
+                                View Cases
+                              </Button>
+                            </>
+                          )}
+                          {!isPostApproval && isCascaded && (
                             <Button size="xs" variant="secondary" icon={Search}
                               onClick={() => scrollToCases(alloc)}>
                               View Cases
@@ -923,21 +941,23 @@ export default function TaxCenterDashboard({ view }) {
       )}
 
       {/* ═══ CASCADE SUCCESS MODAL ═══ */}
-      <Modal open={cascadeModal} onClose={() => setCascadeModal(false)}
+      <Modal open={cascadeModal} onClose={() => { setCascadeModal(false); window.location.reload(); }}
         title="✅ Case Cascade Complete" size="lg"
-        footer={<Button variant="primary" onClick={() => setCascadeModal(false)}>Done</Button>}>
+        footer={<Button variant="primary" onClick={() => { setCascadeModal(false); window.location.reload(); }}>Done</Button>}>
         {cascadeResult && (
           <div className="space-y-4">
             <div className="text-center py-4">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
                 <Check className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold text-green-700">{cascadeResult.totalCasesCreated || 0} Audit Cases Created</h3>
+              <h3 className="text-xl font-bold text-green-700">
+                {cascadeResult.totalCasesCreated > 0 ? `${cascadeResult.totalCasesCreated} Audit Cases Created` : `${cascadeResult.totalCases || 'All'} Audit Cases Active`}
+              </h3>
               <p className="text-sm text-gray-600 mt-2">
                 Plan "{cascadeResult.planName}" (FY {cascadeResult.planYear}) cascaded through the risk engine.
               </p>
-              {cascadeResult.previousCasesDeleted > 0 && (
-                <p className="text-xs text-orange-600 mt-1">🗑️ Previous {cascadeResult.previousCasesDeleted} cases replaced</p>
+              {cascadeResult.previousCasesPreserved > 0 && (
+                <p className="text-xs text-blue-600 mt-1">🛡️ {cascadeResult.previousCasesPreserved} existing audit cases active & preserved</p>
               )}
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200">
@@ -1005,6 +1025,16 @@ export default function TaxCenterDashboard({ view }) {
                 onClick={() => { handleCascade(viewDetailModal); setViewDetailModal(null); }}
               >
                 Execute Case Cascade
+              </Button>
+            )}
+            {POST_APPROVAL_STATUSES.includes(viewDetailModal?.planStatus) && (viewDetailModal?.cascaded || planHasCases(viewDetailModal?.planId)) && (
+              <Button
+                variant="success"
+                icon={Play}
+                loading={cascading === viewDetailModal?.planId}
+                onClick={() => { handleCascade(viewDetailModal, true); setViewDetailModal(null); }}
+              >
+                Re-execute Cascade
               </Button>
             )}
             {!POST_APPROVAL_STATUSES.includes(viewDetailModal?.planStatus) && !viewDetailModal?.acknowledged && (

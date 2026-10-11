@@ -724,25 +724,11 @@ export default function AuditorDashboard({ view, onNavigate }) {
 
   // ── Render Case Workspace if Active ──────────────────────────────────────
   if (activeStepCase) {
-    const caseIsTp = (activeStepCase.auditType || '').toUpperCase().includes('TP') ||
-                     (activeStepCase.auditType || '').toUpperCase().includes('TRANSFER');
-    if (!isJoint && (isTp || caseIsTp)) {
-      return (
-        <TpAuditorWorkspace
-          caseData={activeStepCase}
-          user={user}
-          initialGate={STEP_CONFIG[view]?.gate || 'DETAILED_RISK_ASSESSMENT'}
-          assignedCases={cases}
-          onSwitchCase={(newCase) => setActiveStepCase(newCase)}
-          onClose={() => {
-            setActiveStepCase(null);
-            setExecutingCaseOverride(null);
-          }}
-          onRefresh={refresh}
-        />
-      );
-    }
-    const caseIsDesk = (activeStepCase.auditType || '').toUpperCase().includes('DESK');
+    const rawType = (activeStepCase.auditType || '').toUpperCase();
+    const caseIsDesk = rawType.includes('DESK');
+    const caseIsComprehensive = rawType.includes('COMPREHENSIVE');
+    const caseIsTp = rawType.includes('TP') || rawType.includes('TRANSFER');
+
     if (caseIsDesk) {
       return (
         <DeskAuditWorkspace
@@ -758,7 +744,6 @@ export default function AuditorDashboard({ view, onNavigate }) {
         />
       );
     }
-    const caseIsComprehensive = (activeStepCase.auditType || '').toUpperCase().includes('COMPREHENSIVE');
     if (caseIsComprehensive) {
       return (
         <ComprehensiveAuditWorkspace
@@ -771,6 +756,22 @@ export default function AuditorDashboard({ view, onNavigate }) {
             sessionStorage.removeItem('auditor_active_case_id');
             if (onNavigate) onNavigate('cases');
           }}
+        />
+      );
+    }
+    if (!isJoint && (isTp || caseIsTp)) {
+      return (
+        <TpAuditorWorkspace
+          caseData={activeStepCase}
+          user={user}
+          initialGate={STEP_CONFIG[view]?.gate || 'DETAILED_RISK_ASSESSMENT'}
+          assignedCases={cases}
+          onSwitchCase={(newCase) => setActiveStepCase(newCase)}
+          onClose={() => {
+            setActiveStepCase(null);
+            setExecutingCaseOverride(null);
+          }}
+          onRefresh={refresh}
         />
       );
     }

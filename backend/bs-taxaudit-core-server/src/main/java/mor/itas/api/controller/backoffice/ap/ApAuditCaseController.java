@@ -12,40 +12,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/v1/backoffice/ap/cases")
+@RequestMapping("/api/v1/backoffice/ap/cases-seed")
 @RequiredArgsConstructor
 public class ApAuditCaseController {
 
     private final ApAuditCaseRepository auditCaseRepository;
-
-    @GetMapping
-    public ResponseEntity<List<ApAuditCaseEntity>> getCases(
-            @RequestParam(required = false) String assignedAuditor,
-            @RequestParam(required = false) String assignedTeamLeader,
-            @RequestParam(required = false) String status) {
-        
-        List<ApAuditCaseEntity> cases = auditCaseRepository.findAll();
-        
-        if (assignedAuditor != null && !assignedAuditor.isEmpty()) {
-            cases = cases.stream()
-                .filter(c -> assignedAuditor.equals(c.getAssignedAuditorId()))
-                .collect(Collectors.toList());
-        }
-        
-        if (assignedTeamLeader != null && !assignedTeamLeader.isEmpty()) {
-            cases = cases.stream()
-                .filter(c -> assignedTeamLeader.equals(c.getAssignedTeamLeaderId()))
-                .collect(Collectors.toList());
-        }
-
-        if (status != null && !status.isEmpty()) {
-            cases = cases.stream()
-                .filter(c -> status.equals(c.getCaWorkflowStatus()) || status.equals(c.getStatus()))
-                .collect(Collectors.toList());
-        }
-        
-        return ResponseEntity.ok(cases);
-    }
 
     @PostMapping("/seed")
     public ResponseEntity<String> seedCases() {

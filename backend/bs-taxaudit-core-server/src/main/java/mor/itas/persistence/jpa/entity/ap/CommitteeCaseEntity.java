@@ -144,8 +144,18 @@ public class CommitteeCaseEntity {
     @Column(name = "handoff_date")
     private OffsetDateTime handoffDate;
 
+    @Column(name = "decision_reason")
+    private String decisionReason;
+
+    @Column(name = "decision_date")
+    private OffsetDateTime decisionDate;
+
+    @Column(name = "ownership_acquired_at")
+    private OffsetDateTime ownershipAcquiredAt;
+
     @Column(nullable = false)
     private UUID createdBy;
+
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
