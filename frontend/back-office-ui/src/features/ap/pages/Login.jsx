@@ -6,7 +6,7 @@ export default function Login() {
   const { login } = useAuth();
   
   const [email, setEmail]         = useState('');
-  const [password, setPassword]   = useState('Mor@2026!');
+  const [password, setPassword]   = useState('');
   const [showPwd, setShowPwd]     = useState(false);
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
@@ -16,19 +16,22 @@ export default function Login() {
     const inputValue = email.trim();
     
     if (!inputValue) { 
-      setError('Username or email is required');    
+      setError('Username or email is required.');    
       return; 
     }
 
-    const effectivePassword = password || 'Mor@2026!';
+    if (!password || !password.trim()) {
+      setError('Password is required.');
+      return;
+    }
     
     setError('');
     setLoading(true);
 
     try {
-      await login(inputValue, effectivePassword);
+      await login(inputValue, password);
     } catch (err) {
-      setError(err.message || 'Login failed. Please check the username or email.');
+      setError(err.message || 'Invalid username/email or password.');
     } finally {
       setLoading(false);
     }
@@ -54,17 +57,17 @@ export default function Login() {
               />
               <div className="w-full h-full bg-white/15 items-center justify-center text-white font-bold text-sm hidden">MOR</div>
             </div>
-            <h1 className="text-lg font-bold tracking-tight text-white">ITAS Back-office</h1>
+            <h1 className="text-lg font-bold tracking-tight text-white">ITAS Tax Audit System</h1>
           </div>
         </div>
 
         <div className="relative z-10 space-y-4 max-w-xl my-auto">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-200/80">MINISTRY OF REVENUE - ITAS</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-200/80">MINISTRY OF REVENUES - ITAS</p>
           <h2 className="text-[2.25rem] lg:text-[2.75rem] font-extrabold leading-[1.1] tracking-tight text-white">
-            Tax administration, operated with clarity.
+            Tax audit administration, operated with clarity.
           </h2>
           <p className="text-blue-100/80 text-[14px] leading-relaxed max-w-lg">
-            Sign in to access the back-office suite — registration, workflow tasks, and tax-type administration in one secure console.
+            Sign in to access the MOR Tax Audit System — annual audit planning, risk-based case selection, desk &amp; comprehensive audits, joint &amp; transfer pricing audits, and quality assurance in one secure console.
           </p>
         </div>
 
@@ -79,7 +82,7 @@ export default function Login() {
         <div className="w-full max-w-[420px] space-y-5 my-auto">
           <div className="space-y-1">
             <h2 className="text-[2.2rem] font-bold tracking-tight text-white">Welcome back</h2>
-            <p className="text-sm text-gray-400">Sign in to continue to the ITAS Back-office.</p>
+            <p className="text-sm text-gray-400">Sign in to continue to the ITAS Tax Audit System.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -97,15 +100,18 @@ export default function Login() {
                   type="text"
                   autoComplete="username"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="e.g. getnet.bekele@mor.gov.et, u-ad-01, or eden.haile@mor.gov.et"
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="Enter your official MOR email or username"
                   className="w-full pl-10 pr-4 py-3 bg-[#111827] border border-gray-800 text-white placeholder-gray-500 text-[13px]
                              rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500
                              transition-all duration-200 font-mono"
                 />
               </div>
               <p className="text-[11px] text-gray-500 mt-1.5">
-                Sign in using your official MOR email address (e.g. <code className="text-blue-400">getnet.bekele@mor.gov.et</code>) or system username.
+                Sign in using your official MOR email address or assigned system username.
               </p>
             </div>
 
@@ -114,9 +120,6 @@ export default function Login() {
                 <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-[0.08em]">
                   Password <span className="text-red-400">*</span>
                 </label>
-                <span className="text-[10px] font-semibold text-emerald-400">
-                  Default: <code className="font-mono">Mor@2026!</code>
-                </span>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -128,8 +131,11 @@ export default function Login() {
                   type={showPwd ? 'text' : 'password'}
                   autoComplete="current-password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Enter your password (default: Mor@2026!)"
+                  onChange={e => {
+                    setPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="Enter your password"
                   className="w-full pl-10 pr-11 py-3 bg-[#111827] border border-gray-800 text-white placeholder-gray-600 text-[13px]
                              rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500
                              transition-all duration-200"
@@ -166,43 +172,7 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Quick-Fill Helper for System Admin & Existing Roles */}
-          <div className="pt-3 border-t border-gray-800/80 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-gray-400">
-              <span className="font-bold uppercase tracking-wider text-gray-500">Quick-Fill Credentials</span>
-              <span className="text-[10px] text-blue-400 font-mono">Password: Mor@2026!</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {[
-                { label: '🛡️ System Admin', id: 'admin@mor.gov.et', sub: 'User & Security Admin' },
-                { label: '🏅 QA Officer', id: 'qa.officer1@mor.gov.et', sub: 'ISO 19011 QA Inspector' },
-                { label: '⭐ QA Team Leader', id: 'qa.tl1@mor.gov.et', sub: 'QA Supervisory Review' },
-                { label: '🏛️ QA Director', id: 'qa.director@mor.gov.et', sub: 'Executive QA Governance' },
-                { label: '🏢 LTO1 Manager', id: 'u-tcm-federal-lto1', sub: 'Federal LTO-1 Manager' },
-                { label: '📋 Desk TL (LTO1)', id: 'u-tl-federal-lto1-desk-1', sub: 'Desk Audit Team Leader' },
-                { label: '🔍 Desk Auditor', id: 'u-aud-federal-lto1-desk-1-1', sub: 'Desk Audit Execution' },
-                { label: '📊 Comp Auditor', id: 'u-aud-federal-lto1-comp-1-1', sub: 'Comprehensive Audit' },
-                { label: '⚖️ Joint TL (LTO2)', id: 'fed2.ja.tl@mor.gov.et', sub: 'Joint Audit Team Leader' },
-                { label: '⚖️ Joint Auditor', id: 'fed.ja.auditor1@mor.gov.et', sub: 'Joint Audit Workspace' },
-              ].map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => {
-                    setEmail(preset.id);
-                    setPassword('Mor@2026!');
-                    setError('');
-                  }}
-                  className="text-left px-2.5 py-2 rounded-lg bg-[#111827] hover:bg-blue-950/50 border border-gray-800 hover:border-blue-600/50 transition cursor-pointer"
-                >
-                  <div className="text-[11px] font-bold text-gray-200 truncate">{preset.label}</div>
-                  <div className="text-[10px] text-gray-500 font-mono truncate">{preset.id}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center gap-5 mt-4 pt-1">
+          <div className="flex items-center justify-center gap-5 mt-4 pt-3 border-t border-gray-800/80">
             {[
               { icon: HelpCircle, label: 'Help Center' },
               { icon: Activity, label: 'System Status' },

@@ -32,5 +32,7 @@ This directory contains the three complete, independent, and verified engineerin
 
 ---
 
-## Architecture & Code Flow Deep Dive
+## Architecture, User Directory & Code Flow Deep Dive
+- [`05_System_User_Directory_and_Login_Accounts.md`](./05_System_User_Directory_and_Login_Accounts.md) — Official User Directory & Login Credentials (**821 accounts** across System Admin, Quality Assurance Directorate, National Planning, Directors, Tax Center Managers, Committees, Team Leaders, and Auditors, including the Quick-Reference Credentials table).
 - [`06_Spring_Boot_Layered_Architecture_and_Code_Flow_Deep_Dive.md`](./06_Spring_Boot_Layered_Architecture_and_Code_Flow_Deep_Dive.md) — Complete walkthrough of all 7 Spring Boot layers (`Security/Filters`, `Controllers/DTOs`, `Application Services/Use Cases`, `Domain Core/DDD`, `Persistence/JPA Repositories`, `External Engine Adapters`, and `PostgreSQL/Flyway Seeders`) with Mermaid diagrams and real project code traces.
+- [`07_Backend_Login_and_Authentication_Code_Flow.md`](./07_Backend_Login_and_Authentication_Code_Flow.md) — Line-by-line backend code walkthrough of user login (`POST /api/v1/backoffice/auth/login`), BCrypt verification, 5-attempt lockout, forced password change, and signed HMAC-SHA256 JWT generation.

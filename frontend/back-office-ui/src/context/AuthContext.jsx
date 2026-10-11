@@ -255,6 +255,7 @@ export const AuthProvider = ({ children }) => {
       // 1. Primary: Call backend BCrypt & JWT Authentication Endpoint
       let backendAuthRes = null;
       let networkFailed = false;
+      let authErrorFromBackend = null;
       try {
         const res = await fetch('/api/v1/backoffice/auth/login', {
           method: 'POST',
@@ -262,14 +263,15 @@ export const AuthProvider = ({ children }) => {
           body: JSON.stringify({ identifier, password: String(password) })
         });
         backendAuthRes = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(backendAuthRes?.message || 'Invalid username/email or password.');
+        if (!res.ok || !backendAuthRes?.success) {
+          authErrorFromBackend = new Error(backendAuthRes?.message || 'Invalid username/email or password.');
         }
-      } catch (err) {
-        if (err.message && (err.message.includes('Invalid') || err.message.includes('locked') || err.message.includes('deactivated') || err.message.includes('attempt'))) {
-          throw err;
-        }
+      } catch (_) {
         networkFailed = true;
+      }
+
+      if (authErrorFromBackend) {
+        throw authErrorFromBackend;
       }
 
       if (backendAuthRes && backendAuthRes.success && backendAuthRes.user) {
@@ -297,7 +299,7 @@ export const AuthProvider = ({ children }) => {
         return completeUser;
       }
 
-      // 2. Offline fallback ONLY if backend server was unreachable
+      // 2. Offline fallback ONLY if backend server was completely unreachable
       if (networkFailed) {
         if (password !== 'Mor@2026!' && password !== 'password123') {
           throw new Error('Invalid username/email or password.');
@@ -306,19 +308,17 @@ export const AuthProvider = ({ children }) => {
         const inputBase = inputLower.replace(/@mor\.gov\.et$/, '');
         const seedList = SEED_USERS.map(buildCompleteUserProfile);
         const allUsers = mergeUserPools(directoryUsersRef.current || [], seedList);
-        let found = allUsers.find(u =>
+        const found = allUsers.find(u =>
           u && (
             (u.id || '').toLowerCase() === inputLower ||
             (u.username || '').toLowerCase() === inputLower ||
-            (u.username || '').toLowerCase() === inputBase ||
+            (!inputLower.includes('@') && (u.username || '').toLowerCase() === inputBase) ||
             (u.legacyUsername || '').toLowerCase() === inputLower ||
-            (u.legacyUsername || '').toLowerCase() === inputBase ||
-            (u.email || '').toLowerCase() === inputLower
+            (!inputLower.includes('@') && (u.legacyUsername || '').toLowerCase() === inputBase) ||
+            (u.email || '').toLowerCase() === inputLower ||
+            (u.legacyEmail || '').toLowerCase() === inputLower
           )
         );
-        if (!found) {
-          found = synthesizeUserFromPattern(identifier);
-        }
         if (!found) {
           throw new Error('Invalid username/email or password.');
         }

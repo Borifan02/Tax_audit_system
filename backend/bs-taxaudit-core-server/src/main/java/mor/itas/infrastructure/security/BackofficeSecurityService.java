@@ -329,20 +329,85 @@ public class BackofficeSecurityService {
         seedExtraAccount("u-tl-fed1d", "u-tl-fed1d", "genet.zewde@mor.gov.et", "Genet Zewde (Issue TL - LTO1)", "TEAM_LEADER", "ISSUE_AUDIT", "TAX_CENTER", "federal-lto1");
 
         seedExtraAccount("u-tl-aa1a", "u-tl-aa1a", "henok.belay@mor.gov.et", "Henok Belay (Desk TL)", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-tl-aa1b", "u-tl-aa1b", "tigist.alemu@mor.gov.et", "Tigist Alemu (Field TL)", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-tl-aa1c", "u-tl-aa1c", "melaku.bekele@mor.gov.et", "Melaku Bekele (Joint TL)", "TEAM_LEADER", "JOINT_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-tl-aa1d", "u-tl-aa1d", "seble.tesfaye@mor.gov.et", "Seble Tesfaye (Comp TL)", "TEAM_LEADER", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-tl-aa1e", "u-tl-aa1e", "dawit.mulugeta@mor.gov.et", "Dawit Mulugeta (TP TL)", "TEAM_LEADER", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-tl-aa1f", "u-tl-aa1f", "sara.negash@mor.gov.et", "Sara Negash (Issue TL)", "TEAM_LEADER", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
 
+        seedExtraAccount("u-tl-aa2a", "u-tl-aa2a", "fikadu.desta@mor.gov.et", "Fikadu Desta (Desk TL)", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-tl-aa2b", "u-tl-aa2b", "almaz.worku@mor.gov.et", "Almaz Worku (Field TL)", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-tl-aa2c", "u-tl-aa2c", "biruk.gebre@mor.gov.et", "Biruk Gebre (Comp TL)", "TEAM_LEADER", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-tl-aa2d", "u-tl-aa2d", "hana.abebe@mor.gov.et", "Hana Abebe (TP TL)", "TEAM_LEADER", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-tl-aa2e", "u-tl-aa2e", "daniel.kebede@mor.gov.et", "Daniel Kebede (Issue TL)", "TEAM_LEADER", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+
+        seedExtraAccount("u-tl-aa3a", "u-tl-aa3a", "marta.yohannes@mor.gov.et", "Marta Yohannes (Desk TL)", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-tl-aa3b", "u-tl-aa3b", "getnet.assefa@mor.gov.et", "Getnet Assefa (Field TL)", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-tl-aa3c", "u-tl-aa3c", "bethlehem.girma@mor.gov.et", "Bethlehem Girma (Comp TL)", "TEAM_LEADER", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-tl-aa3d", "u-tl-aa3d", "yosef.lemma@mor.gov.et", "Yosef Lemma (TP TL)", "TEAM_LEADER", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-tl-aa3e", "u-tl-aa3e", "eleni.tadesse@mor.gov.et", "Eleni Tadesse (Issue TL)", "TEAM_LEADER", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-tl-or1a", "u-tl-or1a", "lalisa.wakjira@mor.gov.et", "Lalisa Wakjira (Desk TL)", "TEAM_LEADER", "DESK_AUDIT", "TAX_CENTER", "oromia-tc1");
+
         seedExtraAccount("u-aud-fed1a", "u-aud-fed1a", "tewodros.k@mor.gov.et", "Tewodros Kassahun (LTO Auditor)", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto1");
         seedExtraAccount("u-aud-fed1b", "u-aud-fed1b", "mesfin.wolde@mor.gov.et", "Mesfin Wolde (LTO Auditor)", "AUDITOR", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "federal-lto1");
         seedExtraAccount("u-aud-aa1a", "u-aud-aa1a", "kidist.mehari@mor.gov.et", "Kidist Mehari (Desk Auditor)", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-aud-aa1b", "u-aud-aa1b", "robel.tadesse@mor.gov.et", "Robel Tadesse (Desk Auditor)", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-aud-aa1c", "u-aud-aa1c", "natnael.kifle@mor.gov.et", "Natnael Kifle (Field Auditor)", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-aud-aa1d", "u-aud-aa1d", "yodit.alemayehu@mor.gov.et", "Yodit Alemayehu (Field Auditor)", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-aud-aa1e", "u-aud-aa1e", "samuel.haile@mor.gov.et", "Samuel Haile (Joint Auditor)", "AUDITOR", "JOINT_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-aud-aa1f", "u-aud-aa1f", "eden.tesfaye@mor.gov.et", "Eden Tesfaye (Joint Auditor)", "AUDITOR", "JOINT_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-aud-aa1g", "u-aud-aa1g", "fikremariam.b@mor.gov.et", "Fikremariam B. (Comp Auditor)", "AUDITOR", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-aud-aa1h", "u-aud-aa1h", "saron.getachew@mor.gov.et", "Saron Getachew (Comp Auditor)", "AUDITOR", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-aud-aa1i", "u-aud-aa1i", "michael.desta@mor.gov.et", "Michael Desta (TP Auditor)", "AUDITOR", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-aud-aa1j", "u-aud-aa1j", "eyerusalem.m@mor.gov.et", "Eyerusalem M. (TP Auditor)", "AUDITOR", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-aud-aa1k", "u-aud-aa1k", "abdi.kedir@mor.gov.et", "Abdi Kedir (Issue Auditor)", "AUDITOR", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-aud-aa1l", "u-aud-aa1l", "mahlet.bekele@mor.gov.et", "Mahlet Bekele (Issue Auditor)", "AUDITOR", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+
+        seedExtraAccount("u-aud-aa2a", "u-aud-aa2a", "meseret.hailu@mor.gov.et", "Meseret Hailu", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2b", "u-aud-aa2b", "amanuel.girma@mor.gov.et", "Amanuel Girma", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2c", "u-aud-aa2c", "ruth.berhane@mor.gov.et", "Ruth Berhane", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2d", "u-aud-aa2d", "tesfaye.lemma@mor.gov.et", "Tesfaye Lemma", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2e", "u-aud-aa2e", "fasika.tadesse@mor.gov.et", "Fasika Tadesse", "AUDITOR", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2f", "u-aud-aa2f", "bereket.wolde@mor.gov.et", "Bereket Wolde", "AUDITOR", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2g", "u-aud-aa2g", "helen.tesfaye@mor.gov.et", "Helen Tesfaye", "AUDITOR", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2h", "u-aud-aa2h", "daniel.abera@mor.gov.et", "Daniel Abera", "AUDITOR", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2i", "u-aud-aa2i", "meron.hailu@mor.gov.et", "Meron Hailu", "AUDITOR", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+        seedExtraAccount("u-aud-aa2j", "u-aud-aa2j", "yared.bekele@mor.gov.et", "Yared Bekele", "AUDITOR", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc2");
+
+        seedExtraAccount("u-aud-aa3a", "u-aud-aa3a", "nardos.alemu@mor.gov.et", "Nardos Alemu", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3b", "u-aud-aa3b", "addis.mekonnen@mor.gov.et", "Addis Mekonnen", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3c", "u-aud-aa3c", "bethel.tadesse@mor.gov.et", "Bethel Tadesse", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3d", "u-aud-aa3d", "dawit.negash@mor.gov.et", "Dawit Negash", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3e", "u-aud-aa3e", "hirut.kebede@mor.gov.et", "Hirut Kebede", "AUDITOR", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3f", "u-aud-aa3f", "kaleb.gebre@mor.gov.et", "Kaleb Gebre", "AUDITOR", "COMPREHENSIVE_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3g", "u-aud-aa3g", "rahel.mulugeta@mor.gov.et", "Rahel Mulugeta", "AUDITOR", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3h", "u-aud-aa3h", "yonatan.haile@mor.gov.et", "Yonatan Haile", "AUDITOR", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3i", "u-aud-aa3i", "sofia.tesfaye@mor.gov.et", "Sofia Tesfaye", "AUDITOR", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+        seedExtraAccount("u-aud-aa3j", "u-aud-aa3j", "abraham.girma@mor.gov.et", "Abraham Girma", "AUDITOR", "ISSUE_AUDIT", "TAX_CENTER", "addis_ababa-tc3");
+
+        seedExtraAccount("u-aud-or1a", "u-aud-or1a", "tolera.banti@mor.gov.et", "Tolera Banti", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "oromia-tc1");
+        seedExtraAccount("u-aud-or1b", "u-aud-or1b", "chaltu.bekele@mor.gov.et", "Chaltu Bekele", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "oromia-tc1");
+
+        seedExtraAccount("u-com-aa-chair", "u-com-aa-chair", "aa.committee1@mor.gov.et", "Committee Chair AA (Joint)", "COMMITTEE_CHAIR", "JOINT_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-com-aa-mem1", "u-com-aa-mem1", "aa-ara.joint_committee.2@mor.gov.et", "Committee Member AA (2)", "COMMITTEE_MEMBER", "JOINT_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-com-aa-mem2", "u-com-aa-mem2", "aa-ara.joint_committee.3@mor.gov.et", "Committee Member AA (3)", "COMMITTEE_MEMBER", "JOINT_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-com-aa-mem3", "u-com-aa-mem3", "aa-ara.joint_committee.4@mor.gov.et", "Committee Member AA (4)", "COMMITTEE_MEMBER", "JOINT_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+        seedExtraAccount("u-com-aa-mem4", "u-com-aa-mem4", "aa-ara.joint_committee.5@mor.gov.et", "Committee Member AA (5)", "COMMITTEE_MEMBER", "JOINT_AUDIT", "TAX_CENTER", "addis_ababa-tc1");
+
+        seedExtraAccount("ba1.chair", "ba1.chair", "ba1.chair@mor.gov.et", "Dr. Tadesse Kebede", "COMMITTEE_CHAIR", "JOINT_AUDIT", "TAX_CENTER", "amhara-tc1");
+        seedExtraAccount("ba1.member", "ba1.member", "ba1.member@mor.gov.et", "Almaz Kassa", "COMMITTEE_MEMBER", "JOINT_AUDIT", "TAX_CENTER", "amhara-tc1");
+        seedExtraAccount("dd1.member", "dd1.member", "dd1.member@mor.gov.et", "Hassen Umer", "COMMITTEE_MEMBER", "JOINT_AUDIT", "TAX_CENTER", "dire_dawa-tc1");
+        seedExtraAccount("sn1.member", "sn1.member", "sn1.member@mor.gov.et", "Bereket Haile", "COMMITTEE_MEMBER", "JOINT_AUDIT", "TAX_CENTER", "snnpr-tc1");
+        seedExtraAccount("so1.member", "so1.member", "so1.member@mor.gov.et", "Fatuma Ahmed", "COMMITTEE_MEMBER", "JOINT_AUDIT", "TAX_CENTER", "somali-tc1");
+        seedExtraAccount("taxpayer1", "taxpayer1", "cfo@cresttextiles.et", "Crest Textiles CFO", "TAXPAYER", null, "TAX_CENTER", "federal-lto1");
+
         seedExtraAccount("u-aud-addis_ababa-tc1-tp-1-1", "michael.abera", "michael.abera@mor.gov.et", "Michael Abera (TP Auditor)", "AUDITOR", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc1");
         seedExtraAccount("u-tl-addis_ababa-tc1-tp-1", "robel.girma", "robel.girma@mor.gov.et", "Robel Girma (TP TL-1)", "TEAM_LEADER", "TRANSFER_PRICING", "TAX_CENTER", "addis_ababa-tc1");
+
+        // Short aliases for single-digit national IDs
+        if (aliasToCanonicalId.containsKey("u-ad-01")) aliasToCanonicalId.put("u-ad-1", aliasToCanonicalId.get("u-ad-01"));
+        if (aliasToCanonicalId.containsKey("u-pt-01")) aliasToCanonicalId.put("u-pt-1", aliasToCanonicalId.get("u-pt-01"));
+        if (aliasToCanonicalId.containsKey("u-sm-01")) aliasToCanonicalId.put("u-sm-1", aliasToCanonicalId.get("u-sm-01"));
     }
 
     private void seedExtraAccount(String username, String legacyUsername, String email, String fullName,
@@ -400,8 +465,8 @@ public class BackofficeSecurityService {
     }
 
     /**
-     * Resolves any user identifier (username, email, legacyUsername, UUID, or pattern-based MOR account)
-     * into a tracked UserSecurityRecord.
+     * Resolves an existing registered user identifier (username, email, legacyUsername, or UUID)
+     * into a tracked UserSecurityRecord. Unknown/unregistered identifiers strictly return null.
      */
     public UserSecurityRecord resolveSecurityRecord(String identifier) {
         if (identifier == null || identifier.isBlank()) return null;
@@ -409,18 +474,23 @@ public class BackofficeSecurityService {
         String base = clean.replace("@mor.gov.et", "");
 
         String canonical = aliasToCanonicalId.get(clean);
-        if (canonical == null) canonical = aliasToCanonicalId.get(base);
+        if (canonical == null && clean.endsWith("@mor.gov.et")) {
+            canonical = aliasToCanonicalId.get(base);
+        }
+        if (canonical == null && !clean.contains("@")) {
+            canonical = aliasToCanonicalId.get(base);
+        }
         if (canonical != null && securityRecords.containsKey(canonical)) {
             return securityRecords.get(canonical);
         }
 
-        // Direct search across records
+        // Direct exact search across registered records
         for (UserSecurityRecord r : securityRecords.values()) {
             if (clean.equalsIgnoreCase(r.getUsername()) ||
-                base.equalsIgnoreCase(r.getUsername()) ||
+                (!clean.contains("@") && base.equalsIgnoreCase(r.getUsername())) ||
                 clean.equalsIgnoreCase(r.getEmail()) ||
                 clean.equalsIgnoreCase(r.getLegacyUsername()) ||
-                base.equalsIgnoreCase(r.getLegacyUsername()) ||
+                (!clean.contains("@") && base.equalsIgnoreCase(r.getLegacyUsername())) ||
                 clean.equalsIgnoreCase(r.getLegacyEmail()) ||
                 clean.equalsIgnoreCase(r.getUserId())) {
                 indexAliases(r.getUsername().toLowerCase(), r.getUserId(), r.getUsername(), r.getLegacyUsername(), r.getEmail(), r.getLegacyEmail());
@@ -428,72 +498,6 @@ public class BackofficeSecurityService {
             }
         }
 
-        // Check if user follows canonical MOR pattern (e.g. u-tl-..., u-aud-..., qa_officer, taxpayer1)
-        UserSecurityRecord synthesized = synthesizePatternRecord(base, clean);
-        if (synthesized != null) {
-            String key = synthesized.getUsername().toLowerCase();
-            securityRecords.putIfAbsent(key, synthesized);
-            indexAliases(key, synthesized.getUserId(), synthesized.getUsername(), synthesized.getLegacyUsername(), synthesized.getEmail(), null);
-            return securityRecords.get(key);
-        }
-
-        return null;
-    }
-
-    private UserSecurityRecord synthesizePatternRecord(String base, String rawInput) {
-        if (base.startsWith("u-") || base.startsWith("qa") || base.startsWith("taxpayer") || base.contains(".tl") || base.contains(".auditor") || base.contains(".chair") || base.contains(".manager")) {
-            String userType = "AUDITOR";
-            String assignedLevel = "TAX_CENTER";
-            String location = "federal-lto1";
-            String auditType = null;
-
-            if (base.startsWith("u-pt-") || base.contains("planning")) { userType = "PLANNING_TEAM"; assignedLevel = "NATIONAL"; location = "FEDERAL"; }
-            else if (base.startsWith("u-ad-") || base.contains("director")) { userType = "DIRECTOR"; assignedLevel = "NATIONAL"; location = "FEDERAL"; }
-            else if (base.startsWith("u-sm-") || base.contains("senior")) { userType = "SENIOR_MANAGEMENT"; assignedLevel = "NATIONAL"; location = "FEDERAL"; }
-            else if (base.startsWith("u-rd-")) { userType = "REGIONAL_DIRECTOR"; assignedLevel = "REGIONAL"; location = base.replace("u-rd-", "").toUpperCase(); }
-            else if (base.startsWith("u-tcm-") || base.startsWith("u-tc-") || base.contains("manager")) { userType = "TAX_CENTER_MANAGER"; }
-            else if (base.startsWith("u-tl-") || base.contains(".tl") || base.contains("teamleader")) { userType = "TEAM_LEADER"; }
-            else if (base.startsWith("u-com-") || base.contains(".chair")) { userType = "COMMITTEE_CHAIR"; }
-            else if (base.startsWith("u-req-")) { userType = "AUDIT_REQUESTER"; assignedLevel = "NATIONAL"; location = "FEDERAL"; }
-            else if (base.startsWith("qa")) { userType = base.toUpperCase(); assignedLevel = "NATIONAL"; location = "federal-lto1"; }
-            else if (base.startsWith("taxpayer")) { userType = "TAXPAYER"; assignedLevel = "TAX_CENTER"; location = "addis_ababa-tc1"; }
-
-            if (base.contains("desk")) auditType = "DESK_AUDIT";
-            else if (base.contains("comp")) auditType = "COMPREHENSIVE_AUDIT";
-            else if (base.contains("tp") || base.contains("transfer")) auditType = "TRANSFER_PRICING";
-            else if (base.contains("joint") || base.contains("ja")) auditType = "JOINT_AUDIT";
-            else if (base.contains("issue")) auditType = "ISSUE_AUDIT";
-
-            if (base.contains("federal-lto2") || base.contains("fed2")) location = "federal-lto2";
-            else if (base.contains("federal-lto1") || base.contains("fed1") || base.contains("fed")) location = "federal-lto1";
-            else if (base.contains("addis_ababa-tc1") || base.contains("aa1")) location = "addis_ababa-tc1";
-            else if (base.contains("addis_ababa-tc2") || base.contains("aa2")) location = "addis_ababa-tc2";
-            else if (base.contains("addis_ababa-tc3") || base.contains("aa3")) location = "addis_ababa-tc3";
-            else if (base.contains("oromia-tc1") || base.contains("or1")) location = "oromia-tc1";
-            else if (base.contains("oromia-tc2") || base.contains("or2")) location = "oromia-tc2";
-            else if (base.contains("oromia-tc3") || base.contains("or3")) location = "oromia-tc3";
-            else if (base.contains("amhara-tc1") || base.contains("am1")) location = "amhara-tc1";
-            else if (base.contains("dire_dawa-tc1") || base.contains("dd1")) location = "dire_dawa-tc1";
-            else if (base.contains("snnpr-tc1") || base.contains("sn1")) location = "snnpr-tc1";
-            else if (base.contains("somali-tc1") || base.contains("so1")) location = "somali-tc1";
-
-            return UserSecurityRecord.builder()
-                    .userId(base)
-                    .username(base)
-                    .email(rawInput.contains("@") ? rawInput : (base + "@mor.gov.et"))
-                    .fullName(base.toUpperCase())
-                    .userType(userType)
-                    .auditType(auditType)
-                    .assignedLevel(assignedLevel)
-                    .assignedLocation(location)
-                    .status("ACTIVE")
-                    .passwordHash(defaultPasswordHash)
-                    .customPasswordSet(false)
-                    .mustChangePassword(false)
-                    .failedLoginCount(0)
-                    .createdAt(OffsetDateTime.now())
-                    .build();
-        }
         return null;
     }
 

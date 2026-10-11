@@ -1,19 +1,46 @@
 # ITAS Tax Audit System — Official User Directory & Login Credentials
 
-**Generated Date:** March 2026 / Tahsas 2018 E.C.  
-**Status:** Production-Ready Synchronized System Roster  
+**Generated Date:** October 2026 / Tikimt 2019 E.C.  
+**Status:** Production-Ready Synchronized System Roster (BCrypt + 5-Attempt Lockout + Signed JWT)  
 **Naming Convention:** Full Role Title Prefixes on Username and Email (`role-id` / `role.firstname.lastname@mor.gov.et`)  
-**Default Password for all seed accounts:** `password123`
+**Default Password for all seed accounts:** `Mor@2026!` *(legacy seed password `password123` is also accepted until the user sets a custom password)*
 
 > [!TIP]
 > **Quick Login Instructions:**
-> - You can log in using either the **Official Role-Prefixed Email** or the **Role-Prefixed Username**.
-> - Backward compatibility is preserved (legacy IDs such as `u-ad-01`, `u-pt-01`, `aa1.tl` remain active aliases in the backend).
+> - You can log in using either the **Official Email** or the **Assigned System Username / Legacy Alias**.
+> - Both the username/email and password are strictly validated by the backend (`POST /api/v1/backoffice/auth/login`). Any unrecognized username/email or wrong password returns `HTTP 401 Unauthorized`.
+
+---
+
+## Quick-Reference Credentials (Key Roles Across All Clusters)
+
+The following primary accounts cover every major role and audit cluster in the MOR Tax Audit System (Default Password: **`Mor@2026!`**):
+
+| Role / Workspace | Login Email / Identifier | Alternative Username / Alias | Full Name | Audit Cluster / Scope | Default Password |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **🛡️ System Admin** | `admin@mor.gov.et` | `sysadmin-01` / `admin` | Dawit Solomon | National IT Security & User Administration | `Mor@2026!` |
+| **🏅 QA Officer** | `qa.officer1@mor.gov.et` | `qa.officer1` / `u-qa-officer-1` | Rahel Tesfaye | ISO 19011 Quality Assurance Inspector | `Mor@2026!` |
+| **🏅 QA Officer (2)** | `qa.officer2@mor.gov.et` | `qa.officer2` / `u-qa-officer-2` | Biniyam Girma | ISO 19011 Quality Assurance Inspector | `Mor@2026!` |
+| **⭐ QA Team Leader** | `qa.tl1@mor.gov.et` | `qa.tl1` / `u-qa-tl-1` | Tewodros Mekonnen | QA Supervisory Review & Sampling | `Mor@2026!` |
+| **🏛️ QA Director** | `qa.director@mor.gov.et` | `qa.director` / `u-qa-director-1` | Dr. Mesfin Alemayehu | Executive QA Governance & Sign-Off | `Mor@2026!` |
+| **🏢 LTO1 Manager** | `taxcentermanager.tsega.mulugeta@mor.gov.et` | `u-tcm-federal-lto1` | Tsega Mulugeta | Federal LTO-1 Tax Center Manager | `Mor@2026!` |
+| **📋 Desk TL (LTO1)** | `u-tl-federal-lto1-desk-1@mor.gov.et` | `u-tl-federal-lto1-desk-1` | Desk TL-1 (FED-LTO1) | Desk Audit Team Leader (Federal LTO-1) | `Mor@2026!` |
+| **🔍 Desk Auditor** | `u-aud-federal-lto1-desk-1-1@mor.gov.et` | `u-aud-federal-lto1-desk-1-1` | Desk Aud-1 (TL-1, FED-LTO1) | Desk Audit Execution (Federal LTO-1) | `Mor@2026!` |
+| **📊 Comp Auditor** | `u-aud-federal-lto1-comp-1-1@mor.gov.et` | `u-aud-federal-lto1-comp-1-1` | Seble Worku | Comprehensive Audit Execution (Federal LTO-1) | `Mor@2026!` |
+| **⚖️ Joint TL (LTO2)** | `fed2.ja.tl@mor.gov.et` | `fed2.ja.tl` / `teamleader-federal-lto2-ja-1` | Berhanu Bekele | Joint Audit Team Leader (Federal LTO-2) | `Mor@2026!` |
+| **⚖️ Joint Auditor** | `fed.ja.auditor1@mor.gov.et` | `fed.ja.auditor1` / `auditor-federal-lto1-ja-1` | Fikremariam Tilahun | Joint Audit Execution (Federal LTO-1) | `Mor@2026!` |
+| **📐 Planning Team** | `planning.eden.haile@mor.gov.et` | `planning-01` / `u-pt-01` | Eden Haile | National Annual Audit Planning | `Mor@2026!` |
+| **🏛️ Audit Director** | `director.getnet.bekele@mor.gov.et` | `director-01` / `u-ad-01` | Getnet Bekele | National Audit Directorate Approval | `Mor@2026!` |
+| **👑 Senior Management** | `seniormanagement.almaz.berhane@mor.gov.et` | `seniormanagement-01` / `u-sm-01` | Almaz Berhane | Executive Plan Sanctioning | `Mor@2026!` |
+
+---
 
 ## Executive Summary of User Counts
 
 | Category / Role | Role Prefix | Total Accounts | Example Login Username | Example Login Email |
 |---|---|---|---|---|
+| System Administration | `sysadmin` | **1** | `sysadmin-01` | `admin@mor.gov.et` |
+| Quality Assurance Directorate | `qa` | **4** | `qa.officer1` | `qa.officer1@mor.gov.et` |
 | National Planning Team | `planning` | **3** | `planning-02` | `planning.samuel.worku@mor.gov.et` |
 | National Audit Directorate | `director` | **2** | `director-02` | `director.gemechu.kebede@mor.gov.et` |
 | Senior Executive Management | `seniormanagement` | **2** | `seniormanagement-01` | `seniormanagement.almaz.berhane@mor.gov.et` |
@@ -24,7 +51,30 @@
 | Joint Audit & TP Committee Members | `committeemember` | **32** | `committeemember-aa1` | `committeemember.fatuma.ahmed@mor.gov.et` |
 | Audit Team Leaders | `teamleader` | **200** | `teamleader-aa1-1` | `teamleader.dawit.tadesse@mor.gov.et` |
 | Audit Specialists & Auditors | `auditor` | **520** | `auditor-aa1-1` | `auditor.sara.mohammed@mor.gov.et` |
-| **Grand Total** | - | **816** | - | - |
+| **Grand Total** | - | **821** | - | - |
+
+---
+
+## 0A. System Administration (HQ Federal IT Security)
+
+**Total Accounts:** 1  
+
+| # | Username | Legacy Alias | Full Name | Official Login Email | Role / Stream | Assigned Location | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | `sysadmin-01` | `admin` / `sys.admin` | Dawit Solomon | `admin@mor.gov.et` | SYSTEM_ADMIN | FEDERAL | ACTIVE |
+
+---
+
+## 0B. Quality Assurance Directorate (HQ Federal — ISO 19011 / SOR FR-04.5)
+
+**Total Accounts:** 4  
+
+| # | Username | Legacy Alias | Full Name | Official Login Email | Role / Stream | Assigned Location | Status |
+|---|---|---|---|---|---|---|---|
+| 1 | `qa.officer1` | `u-qa-officer-1` / `usr-qa-01` | Rahel Tesfaye | `qa.officer1@mor.gov.et` | QA_OFFICER | FEDERAL | ACTIVE |
+| 2 | `qa.officer2` | `u-qa-officer-2` | Biniyam Girma | `qa.officer2@mor.gov.et` | QA_OFFICER | FEDERAL | ACTIVE |
+| 3 | `qa.tl1` | `u-qa-tl-1` / `usr-qa-tl-01` | Tewodros Mekonnen | `qa.tl1@mor.gov.et` | QA_TEAM_LEADER | FEDERAL | ACTIVE |
+| 4 | `qa.director` | `u-qa-director-1` / `usr-qa-dir-01` | Dr. Mesfin Alemayehu | `qa.director@mor.gov.et` | QA_DIRECTOR | FEDERAL | ACTIVE |
 
 ---
 
