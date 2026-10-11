@@ -236,7 +236,6 @@ export default function TeamLeaderDashboard({ view }) {
       console.error('fetchAuditors', e);
       setAuditors([]);
     }
-    }
   }, [user?.id, user?.username, user?.taxCenter, user?.auditType, isCommitteeUser]);
 
   useEffect(() => { fetchCases(); fetchAuditors(); }, [fetchCases, fetchAuditors]);
