@@ -11,6 +11,7 @@ export function normalizeRole(role) {
   if (!role) return 'auditor';
   const r = role.toLowerCase().replace(/[\s-]+/g, '_');
   
+  if (r === 'system_admin' || r === 'sysadmin' || r === 'sys_admin' || r === 'admin') return 'system_admin';
   if (r.includes('qa_officer') || r === 'qa_officer') return 'qa_officer';
   if (r.includes('qa_team_leader') || r === 'qa_team_leader' || r === 'qa.tl1') return 'qa_team_leader';
   if (r.includes('qa_director') || r === 'qa_director' || r === 'qa.director') return 'qa_director';
@@ -25,7 +26,7 @@ export function normalizeRole(role) {
   if (r.includes('committee') || r.includes('member')) return 'committee_member';
   if (r.includes('request')) return 'audit_requester';
   if (r.includes('taxpayer') || r.includes('portal')) return 'taxpayer';
-  if (r.includes('admin')) return 'planning_team';
+  if (r.includes('admin')) return 'system_admin';
   if (r.includes('auditor') || r === 'aud') return 'auditor';
   return r;
 }
@@ -71,6 +72,8 @@ export function buildCompleteUserProfile(rawUser) {
     id,
     userId: id,
     username,
+    legacyUsername: rawUser.legacyUsername || null,
+    legacyEmail: rawUser.legacyEmail || null,
     name,
     fullName: name,
     email,
@@ -80,8 +83,12 @@ export function buildCompleteUserProfile(rawUser) {
     taxCenter,
     auditType,
     permissions,
-    password: rawUser.password || 'password123',
-    status: rawUser.status || 'ACTIVE'
+    password: rawUser.password || 'Mor@2026!',
+    status: rawUser.status || 'ACTIVE',
+    mustChangePassword: Boolean(rawUser.mustChangePassword),
+    customPasswordSet: Boolean(rawUser.customPasswordSet),
+    lastLoginAt: rawUser.lastLoginAt || null,
+    passwordChangedAt: rawUser.passwordChangedAt || null
   };
 }
 
@@ -91,6 +98,7 @@ export function buildCompleteUserProfile(rawUser) {
 export function mapBackendUserToProfile(u) {
   if (!u) return null;
   const roleMapping = {
+    'SYSTEM_ADMIN': 'system_admin',
     'PLANNING_TEAM': 'planning_team',
     'NATIONAL_ADMIN': 'planning_team',
     'DIRECTOR': 'audit_director',
@@ -136,6 +144,8 @@ export function mapBackendUserToProfile(u) {
     id,
     userId: u.userId || id,
     username: u.username || id,
+    legacyUsername: u.legacyUsername || null,
+    legacyEmail: u.legacyEmail || null,
     name,
     fullName: name,
     email,
@@ -146,7 +156,11 @@ export function mapBackendUserToProfile(u) {
     auditType,
     permissions: u.permissions || [],
     status: u.status || 'ACTIVE',
-    password: u.password || 'password123'
+    mustChangePassword: Boolean(u.mustChangePassword),
+    customPasswordSet: Boolean(u.customPasswordSet),
+    lastLoginAt: u.lastLoginAt || null,
+    passwordChangedAt: u.passwordChangedAt || null,
+    password: u.password || 'Mor@2026!'
   };
 }
 
@@ -163,6 +177,7 @@ export function synthesizeUserFromPattern(identifier) {
     const foundInSeed = SEED_USERS.find(u => 
       (u.id && u.id.toLowerCase() === cleanInput) ||
       (u.username && u.username.toLowerCase() === cleanInput) ||
+      (u.legacyUsername && u.legacyUsername.toLowerCase() === cleanInput) ||
       (u.email && u.email.toLowerCase() === input) ||
       (u.email && u.email.toLowerCase() === `${cleanInput}@mor.gov.et`)
     );
@@ -172,12 +187,14 @@ export function synthesizeUserFromPattern(identifier) {
   }
 
   // Pattern checks
-  if (cleanInput === 'admin' || input.includes('admin@mor.gov.et')) {
+  if (cleanInput === 'admin' || cleanInput === 'sysadmin-01' || cleanInput === 'sys.admin' || input.includes('admin@mor.gov.et')) {
     return buildCompleteUserProfile({
-      id: 'admin',
-      name: 'System Administrator',
+      id: 'sysadmin-01',
+      username: 'sysadmin-01',
+      name: 'Dawit Solomon (System Administrator)',
       email: 'admin@mor.gov.et',
-      role: 'planning_team'
+      role: 'system_admin',
+      region: 'federal_level'
     });
   }
 

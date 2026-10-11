@@ -345,6 +345,21 @@ public class MockUserManagementAdapter implements UserManagementPort {
                 }
             }
         }
+
+        // ── System Administrator (National IT & Security Administration) ──
+        addUser("00000000-0000-0000-0000-000000000001", "sys.admin", "admin@mor.gov.et",
+                "Dawit Solomon", "SYSTEM_ADMIN", null, "NATIONAL", "FEDERAL");
+        Map<String, Object> sysAdmin = USERS.get("00000000-0000-0000-0000-000000000001");
+        if (sysAdmin != null) {
+            sysAdmin.put("email", "admin@mor.gov.et");
+            sysAdmin.put("legacyUsername", "admin");
+            sysAdmin.put("legacyEmail", "admin@mor.gov.et");
+            USER_LOOKUP.put("admin", sysAdmin);
+            USER_LOOKUP.put("sys.admin", sysAdmin);
+            USER_LOOKUP.put("sys-admin", sysAdmin);
+            USER_LOOKUP.put("admin@mor.gov.et", sysAdmin);
+            USER_LOOKUP.put("sys.admin@mor.gov.et", sysAdmin);
+        }
     }
 
     // ───────── User builder ─────────
@@ -373,6 +388,7 @@ public class MockUserManagementAdapter implements UserManagementPort {
     public static String getRolePrefix(String userType) {
         if (userType == null) return "officer";
         switch (userType.toUpperCase()) {
+            case "SYSTEM_ADMIN": return "sysadmin";
             case "DIRECTOR": return "director";
             case "PLANNING_TEAM": return "planning";
             case "SENIOR_MANAGEMENT": return "seniormanagement";
@@ -390,6 +406,9 @@ public class MockUserManagementAdapter implements UserManagementPort {
     public static String toPrefixedUsername(String rawUsername, String userType) {
         if (rawUsername == null || rawUsername.isBlank()) return "user";
         String u = rawUsername.trim();
+        if ("sys.admin".equalsIgnoreCase(u) || "admin".equalsIgnoreCase(u) || "SYSTEM_ADMIN".equalsIgnoreCase(userType)) {
+            return "sysadmin-01";
+        }
         String prefix = getRolePrefix(userType);
 
         if (u.startsWith(prefix + "-")) return u;

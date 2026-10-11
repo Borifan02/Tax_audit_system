@@ -299,6 +299,7 @@ export function getRoleDisplayName(user) {
   }
 
   const map = {
+    system_admin:      'MOR System Administrator',
     planning_team:     'Audit Planning Team',
     audit_director:    'Audit Director',
     regional_director: 'Regional Director',
@@ -489,10 +490,33 @@ const NAV_SECTIONS = {
         { id: 'audit_trail', label: 'Audit Trail', icon: CheckSquare }
       ]
     }
+  ],
+  system_admin: [
+    {
+      title: 'SECURITY POSTURE',
+      items: [
+        { id: 'dashboard', label: 'Security Overview', icon: LayoutDashboard, badge: 'BCrypt' }
+      ]
+    },
+    {
+      title: 'IDENTITY & ACCESS CONTROL',
+      items: [
+        { id: 'users', label: 'User & Credential Directory', icon: Users },
+        { id: 'provision', label: 'Provision New Staff', icon: Target }
+      ]
+    },
+    {
+      title: 'SECURITY GOVERNANCE',
+      items: [
+        { id: 'security_logs', label: 'Authentication Audit Log', icon: ShieldAlert, badge: 'Live' },
+        { id: 'audit_trail', label: 'Governance Audit Trail', icon: CheckSquare }
+      ]
+    }
   ]
 };
 
 const ROLE_LABELS = {
+  system_admin:      'MOR System Administrator',
   planning_team:     'Audit Planning Team',
   audit_director:    'Audit Director',
   regional_director: 'Regional Director',

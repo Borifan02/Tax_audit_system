@@ -33,15 +33,20 @@ public class UserDataSeeder implements CommandLineRunner {
     private final AuditorRepository auditorRepo;
     private final Set<String> assignedEmails = new HashSet<>();
     private final Set<String> assignedUsernames = new HashSet<>();
+    private final java.util.Map<UUID, UserEntity> preservedUsers = new java.util.HashMap<>();
+    private static final String DEFAULT_BCRYPT_HASH = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("Mor@2026!");
 
     @Override
     public void run(String... args) throws Exception {
-        log.info("[UserDataSeeder] Initializing clean state for Joint Audit users across 18 tax centers...");
+        log.info("[UserDataSeeder] Synchronizing users across 18 tax centers while preserving security state...");
         assignedEmails.clear();
         assignedUsernames.clear();
-        
+        preservedUsers.clear();
+        for (UserEntity existing : userJpaRepo.findAll()) {
+            preservedUsers.put(existing.getUserId(), existing);
+        }
+
         auditorRepo.deleteAll();
-        userJpaRepo.deleteAll();
 
         // ════════════════════════════════════════════════════════════════════════════
         // 1. NATIONAL & REGIONAL LEADERSHIP
@@ -496,6 +501,9 @@ public class UserDataSeeder implements CommandLineRunner {
         seedUser("a0000002-0000-0000-0002-000000000004", "u-aud-federal-lto2-desk-2-2", "u-aud-federal-lto2-desk-2-2@mor.gov.et", "Henok Abera", "AUDITOR", "DESK_AUDIT", "TAX_CENTER", "federal-lto2");
         seedAuditor("a0000002-0000-0000-0002-000000000004", "Henok", "Abera", "General", "MID_LEVEL", 5, "u-aud-federal-lto2-desk-2-2@mor.gov.et", "+251-911-000008", "federal-lto2");
 
+        // System Administrator
+        seedUser("00000000-0000-0000-0000-000000000001", "sysadmin-01", "admin@mor.gov.et", "Dawit Solomon", "SYSTEM_ADMIN", null, "NATIONAL", "FEDERAL");
+
         log.info("[UserDataSeeder] ✓ Seeded {} total users into t_user and {} auditors into t_auditor",
                  userJpaRepo.count(), auditorRepo.count());
     }
@@ -512,8 +520,8 @@ public class UserDataSeeder implements CommandLineRunner {
         } else {
             namePart = (parts[0].toLowerCase() + "." + parts[parts.length - 1].toLowerCase()).replaceAll("[^a-z0-9.]", "");
         }
-        String candidate = rolePrefix + "." + namePart;
-        String email = candidate + "@mor.gov.et";
+        String candidate = "SYSTEM_ADMIN".equalsIgnoreCase(userType) ? "admin" : (rolePrefix + "." + namePart);
+        String email = "SYSTEM_ADMIN".equalsIgnoreCase(userType) ? "admin@mor.gov.et" : (candidate + "@mor.gov.et");
         if (assignedEmails.contains(email)) {
             int seq = 2;
             while (assignedEmails.contains(candidate + seq + "@mor.gov.et")) {
@@ -532,8 +540,11 @@ public class UserDataSeeder implements CommandLineRunner {
         }
         assignedUsernames.add(username);
 
+        UUID uuid = UUID.fromString(id);
+        UserEntity prev = preservedUsers.get(uuid);
+
         UserEntity entity = UserEntity.builder()
-                .userId(UUID.fromString(id))
+                .userId(uuid)
                 .username(username)
                 .email(email)
                 .fullName(fullName)
@@ -541,8 +552,14 @@ public class UserDataSeeder implements CommandLineRunner {
                 .auditType(auditType)
                 .assignedLevel(level != null ? level : "TAX_CENTER")
                 .assignedLocation(location)
-                .status("ACTIVE")
-                .createdAt(OffsetDateTime.now())
+                .status(prev != null && prev.getStatus() != null ? prev.getStatus() : "ACTIVE")
+                .passwordHash(prev != null && prev.getPasswordHash() != null ? prev.getPasswordHash() : DEFAULT_BCRYPT_HASH)
+                .mustChangePassword(prev != null && prev.getMustChangePassword() != null ? prev.getMustChangePassword() : false)
+                .failedLoginCount(prev != null && prev.getFailedLoginCount() != null ? prev.getFailedLoginCount() : 0)
+                .lockedUntil(prev != null ? prev.getLockedUntil() : null)
+                .lastLoginAt(prev != null ? prev.getLastLoginAt() : null)
+                .passwordChangedAt(prev != null ? prev.getPasswordChangedAt() : null)
+                .createdAt(prev != null && prev.getCreatedAt() != null ? prev.getCreatedAt() : OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .build();
         userJpaRepo.save(entity);

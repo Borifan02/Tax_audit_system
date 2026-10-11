@@ -117,6 +117,9 @@ export default function Login() {
                 <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-[0.08em]">
                   Password <span className="text-red-400">*</span>
                 </label>
+                <span className="text-[10px] font-semibold text-emerald-400">
+                  Default: <code className="font-mono">Mor@2026!</code>
+                </span>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -129,7 +132,7 @@ export default function Login() {
                   autoComplete="current-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Enter your password (default: Mor@2026!)"
                   className="w-full pl-10 pr-11 py-3 bg-[#111827] border border-gray-800 text-white placeholder-gray-600 text-[13px]
                              rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500
                              transition-all duration-200"
@@ -137,17 +140,21 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPwd(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
                   tabIndex={-1}
                 >
                   {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <p className="text-[10px] text-gray-500 mt-1.5 flex items-center justify-between">
+                <span>🔒 BCrypt Hash Verified • 5-Attempt Lockout Guard</span>
+                <span>15-Min Idle Timeout</span>
+              </p>
             </div>
 
             {error && (
-              <div className="text-xs text-red-400 bg-red-950/40 border border-red-800/60 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
-                <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+              <div className="text-xs text-red-300 bg-red-950/60 border border-red-700/70 rounded-xl px-3.5 py-3 flex items-start gap-2.5">
+                <AlertCircle size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
             )}
@@ -155,14 +162,46 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-[14px] font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-blue-900/30"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white text-[14px] font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-blue-900/30 cursor-pointer"
             >
-              {loading ? 'Signing in…' : 'Sign in to ITAS'}
+              {loading ? 'Verifying Credentials…' : 'Sign in to ITAS'}
               <ArrowRight size={15} />
             </button>
           </form>
 
-          <div className="flex items-center justify-center gap-5 mt-6 pt-2">
+          {/* Quick-Fill Helper for System Admin & Existing Roles */}
+          <div className="pt-3 border-t border-gray-800/80 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-gray-400">
+              <span className="font-bold uppercase tracking-wider text-gray-500">Quick-Fill Credentials</span>
+              <span className="text-[10px] text-blue-400 font-mono">Password: Mor@2026!</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { label: '🛡️ System Admin', id: 'admin@mor.gov.et', sub: 'User & Security Admin' },
+                { label: '🏢 LTO1 Manager', id: 'u-tcm-federal-lto1', sub: 'Federal LTO-1 Manager' },
+                { label: '📋 Desk TL (LTO1)', id: 'u-tl-federal-lto1-desk-1', sub: 'Desk Audit Team Leader' },
+                { label: '🔍 Desk Auditor', id: 'u-aud-federal-lto1-desk-1-1', sub: 'Desk Audit Execution' },
+                { label: '📊 Comp Auditor', id: 'u-aud-federal-lto1-comp-1-1', sub: 'Comprehensive Audit' },
+                { label: '⚖️ Joint Auditor', id: 'fed.ja.auditor1@mor.gov.et', sub: 'Joint Audit Workspace' },
+              ].map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => {
+                    setEmail(preset.id);
+                    setPassword('Mor@2026!');
+                    setError('');
+                  }}
+                  className="text-left px-2.5 py-2 rounded-lg bg-[#111827] hover:bg-blue-950/50 border border-gray-800 hover:border-blue-600/50 transition cursor-pointer"
+                >
+                  <div className="text-[11px] font-bold text-gray-200 truncate">{preset.label}</div>
+                  <div className="text-[10px] text-gray-500 font-mono truncate">{preset.id}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-5 mt-4 pt-1">
             {[
               { icon: HelpCircle, label: 'Help Center' },
               { icon: Activity, label: 'System Status' },

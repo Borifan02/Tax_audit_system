@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Bell, Calendar, RefreshCw, Sun, Moon, ChevronLeft, ChevronRight, X, Clock, Users, Shield, Check, Search, ChevronDown, LogOut, Building2, Layers3 } from 'lucide-react';
+import { Bell, Calendar, RefreshCw, Sun, Moon, ChevronLeft, ChevronRight, X, Clock, Users, Shield, Check, Search, ChevronDown, LogOut, Building2, Layers3, KeyRound } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import TaskInboxModal from '../workflow/TaskInboxModal.jsx';
 import NotificationPopover from '../notifications/NotificationPopover.jsx';
+import ChangePasswordModal from '../security/ChangePasswordModal.jsx';
 
 const QUICK_SWITCH_USERS = [];
 
@@ -12,6 +13,7 @@ export default function TopBar({ title, subtitle, onNavigate }) {
   const { theme, toggleTheme } = useTheme();
   const [showCalendar, setShowCalendar] = useState(false);
   const [showTaskInbox, setShowTaskInbox] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [notifications, setNotifications] = useState([]);
@@ -351,9 +353,29 @@ export default function TopBar({ title, subtitle, onNavigate }) {
                   </div>
                 </div>
 
+                {/* Security Actions */}
+                <div className="p-2 border-t border-slate-100 dark:border-slate-700/70 bg-white dark:bg-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      setShowChangePassword(true);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700/80 transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <KeyRound size={14} className="text-blue-600 dark:text-blue-400" />
+                      <span>Change My Password</span>
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                      BCrypt
+                    </span>
+                  </button>
+                </div>
+
                 {/* Footer / Sign Out */}
                 <div className="p-2.5 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                  <span className="text-[10px] text-slate-400 font-mono">ITAS Multi-Role Engine</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Signed JWT Session Active</span>
                   <button
                     type="button"
                     onClick={() => { setShowUserMenu(false); logout(); }}
@@ -371,6 +393,13 @@ export default function TopBar({ title, subtitle, onNavigate }) {
 
       {/* Task Inbox Modal */}
       <TaskInboxModal isOpen={showTaskInbox} onClose={() => setShowTaskInbox(false)} />
+
+      {/* Self-Service Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+        isForced={false}
+      />
     </>
   );
 }

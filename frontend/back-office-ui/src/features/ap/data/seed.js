@@ -5,6 +5,8 @@ import { generateCasesFromPlan, getTaxpayersForTaxCenter } from './taxpayers.js'
 // SEED USERS
 // ============================================================
 export const SEED_USERS = [
+  // System Administrator (IT Security & User Provisioning)
+  { id: 'sysadmin-01', name: 'Dawit Solomon (System Admin)', email: 'admin@mor.gov.et', legacyUsername: 'admin', legacyEmail: 'admin@mor.gov.et', role: 'system_admin', region: 'federal_level', taxCenter: null, password: 'Mor@2026!' },
   // Planning Team
   { id: 'planning-01', name: 'Eden Haile', email: 'planning.eden.haile@mor.gov.et', legacyUsername: 'u-pt-01', legacyEmail: 'eden.haile@mor.gov.et',         role: 'planning_team',     region: null,          taxCenter: null,          password: 'password123' },
   { id: 'planning-02', name: 'Samuel Worku', email: 'planning.samuel.worku@mor.gov.et', legacyUsername: 'u-pt-02', legacyEmail: 'samuel.worku@mor.gov.et',       role: 'planning_team',     region: null,          taxCenter: null,          password: 'password123' },

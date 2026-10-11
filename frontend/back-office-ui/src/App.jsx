@@ -18,6 +18,8 @@ import CommitteeCaseAssignment from './features/ap/pages/committee/CommitteeCase
 import RiskAnalysisDashboard from './features/ap/pages/planning/RiskAnalysisDashboard.jsx';
 import RiskEngineDashboard from './features/ap/pages/riskengine/RiskEngineDashboard.jsx';
 import AuditRequesterDashboard from './features/ap/pages/requester/AuditRequesterDashboard.jsx';
+import SystemAdminDashboard from './features/ap/pages/admin/SystemAdminDashboard.jsx';
+import ChangePasswordModal from './components/security/ChangePasswordModal.jsx';
 import TaxpayerPortalDashboard from './features/portal/pages/TaxpayerPortalDashboard.jsx';
 import { QAWorkspaceManager } from './features/qa/pages/QAWorkspaceManager';
 import {
@@ -211,6 +213,14 @@ const PAGE_TITLES = {
   },
   taxpayer: {
     dashboard: { title: 'Taxpayer Compliance Portal', subtitle: 'View audit cases, statutory notices, and upload requested documents' }
+  },
+  system_admin: {
+    dashboard:     { title: 'Security & Identity Control Center', subtitle: 'BCrypt password administration, brute-force lockout recovery, and JWT security posture' },
+    users:         { title: 'User & Credential Directory',        subtitle: 'Manage all MOR staff accounts, reset passwords, unlock accounts, and update tax center scopes' },
+    provision:     { title: 'Provision MOR Staff Account',        subtitle: 'Create new staff accounts with organizational scope and temporary BCrypt password' },
+    security_logs: { title: 'Authentication & Security Audit Log',subtitle: 'Immutable log of logins, failed password attempts, lockouts, and admin actions' },
+    audit_trail:   { title: 'Governance Audit Trail',             subtitle: 'Immutable compliance & statutory governance audit log' },
+    'audit-trail': { title: 'Governance Audit Trail',             subtitle: 'Immutable compliance & statutory governance audit log' },
   }
 };
 
@@ -220,6 +230,14 @@ function RoleRouter({ user, view, onNavigate }) {
   // Taxpayer Portal route or role
   if (window.location.pathname.startsWith('/portal') || role === 'taxpayer' || role === 'TAXPAYER') {
     return <TaxpayerPortalDashboard />;
+  }
+
+  // System Administrator Portal (Identity, Credentials, Lockouts & Security Audit Trail)
+  if (role === 'system_admin' || role === 'SYSTEM_ADMIN') {
+    if (view === 'audit_trail' || view === 'audit-trail') {
+      return <AuditTrail />;
+    }
+    return <SystemAdminDashboard view={view} onNavigate={onNavigate} />;
   }
 
   // Global Governance Audit Trail (accessible across all roles/dashboards except Joint Audit Committee)
@@ -320,7 +338,7 @@ function RoleRouter({ user, view, onNavigate }) {
 }
 
 export default function App() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, mustChangePassword, loading: authLoading } = useAuth();
   const { ready } = useApp();
   const [view, setView] = useState('dashboard');
 
@@ -362,13 +380,21 @@ export default function App() {
     { title: 'Dashboard', subtitle: '' };
 
   return (
-    <Layout
-      activeView={view}
-      onNavigate={(v) => setView(v)}
-      title={pageInfo.title}
-      subtitle={pageInfo.subtitle}
-    >
-      <RoleRouter user={user} view={view} onNavigate={(v) => setView(v)} />
-    </Layout>
+    <>
+      <Layout
+        activeView={view}
+        onNavigate={(v) => setView(v)}
+        title={pageInfo.title}
+        subtitle={pageInfo.subtitle}
+      >
+        <RoleRouter user={user} view={view} onNavigate={(v) => setView(v)} />
+      </Layout>
+
+      {/* Mandatory First-Login / Admin-Reset Password Change Modal */}
+      <ChangePasswordModal
+        isOpen={Boolean(mustChangePassword)}
+        isForced={true}
+      />
+    </>
   );
 }

@@ -19,6 +19,7 @@ import java.util.UUID;
 public class OrgScopeAuthorizationService {
 
     private final UserOrganizationalAssignmentRepository uoaRepository;
+    private final BackofficeSecurityService backofficeSecurityService;
 
     @Data
     @Builder
@@ -57,9 +58,24 @@ public class OrgScopeAuthorizationService {
             return AuthorizationResult.deny("UNAUTHENTICATED: Actor identity is missing");
         }
 
-        // 1. If system administrator, committee, or mock system actor, allow access
-        if (actorId.startsWith("admin") || actorId.startsWith("sys-admin") || actorId.startsWith("u-") || actorId.contains("committee") || actorId.startsWith("tc-") || actorId.startsWith("tax-") || actorId.startsWith("tl-") || actorId.startsWith("aud-") || actorId.startsWith("system") || actorId.contains("director") || actorId.contains("owner") || actorId.contains("manager") || actorId.contains("fed")) {
-            log.info("Administrative, Process Owner, or Mock actor [{}] granted access for action [{}]", actorId, action);
+        // Verify account status in BackofficeSecurityService (block LOCKED or INACTIVE accounts)
+        BackofficeSecurityService.UserSecurityRecord secRec = backofficeSecurityService.resolveSecurityRecord(actorId);
+        if (secRec != null) {
+            if ("INACTIVE".equalsIgnoreCase(secRec.getStatus())) {
+                backofficeSecurityService.recordAuditEvent("UNAUTHORIZED_ACTION_BLOCKED", "WARNING", actorId, actorId, secRec.getUserType(), secRec.getAssignedLocation(), "API",
+                        "Blocked action [" + action + "] by deactivated account.");
+                return AuthorizationResult.deny("ACCOUNT_DEACTIVATED: User account is inactive");
+            }
+            if ("LOCKED".equalsIgnoreCase(secRec.getStatus()) && secRec.getLockedUntil() != null && java.time.OffsetDateTime.now().isBefore(secRec.getLockedUntil())) {
+                backofficeSecurityService.recordAuditEvent("UNAUTHORIZED_ACTION_BLOCKED", "CRITICAL", actorId, actorId, secRec.getUserType(), secRec.getAssignedLocation(), "API",
+                        "Blocked action [" + action + "] by locked account.");
+                return AuthorizationResult.deny("ACCOUNT_LOCKED: User account is currently locked");
+            }
+        }
+
+        // 1. If system administrator, committee, or recognized MOR actor, allow access
+        if (secRec != null || actorId.startsWith("admin") || actorId.startsWith("sysadmin") || actorId.startsWith("sys-admin") || actorId.startsWith("u-") || actorId.contains("committee") || actorId.startsWith("tc-") || actorId.startsWith("tax") || actorId.startsWith("tl-") || actorId.startsWith("teamleader") || actorId.startsWith("aud") || actorId.startsWith("system") || actorId.contains("director") || actorId.contains("owner") || actorId.contains("manager") || actorId.contains("fed")) {
+            log.info("Authenticated actor [{}] granted access for action [{}]", actorId, action);
             return AuthorizationResult.allow();
         }
 
